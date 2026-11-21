@@ -2,7 +2,6 @@
 
 import {
   AudioLines,
-  ChevronDown,
   Heart,
   House,
   LibraryBig,
@@ -349,19 +348,18 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
     <div className="app-shell" data-variant={variant}>
       <audio ref={audioRef} preload="metadata" />
 
-      <aside className="sidebar">
-        <Brand />
-        <nav aria-label="Основная навигация" className="sidebar-nav">{navigation}</nav>
-      </aside>
-
       <main className="main">
         <div className="home-intro">
           <header className="main-header">
             <Brand />
+            <nav aria-label="Основная навигация" className="desktop-nav">{navigation}</nav>
             <div className="variant-control" role="group" aria-label="Вариант дизайна">
-              <span className="variant-label">Вариант</span>
-              <button type="button" className="variant-button" aria-pressed={variant === "a"} onClick={() => changeVariant("a")} aria-label="Вариант A">A</button>
-              <button type="button" className="variant-button" aria-pressed={variant === "b"} onClick={() => changeVariant("b")} aria-label="Вариант B">B</button>
+              <button type="button" className="variant-button" aria-pressed={variant === "a"} onClick={() => changeVariant("a")} aria-label="Вариант A" title="Сиреневый">
+                <span className="variant-swatch" aria-hidden="true" />
+              </button>
+              <button type="button" className="variant-button" aria-pressed={variant === "b"} onClick={() => changeVariant("b")} aria-label="Вариант B" title="Нефритовый">
+                <span className="variant-swatch" aria-hidden="true" />
+              </button>
             </div>
           </header>
 
@@ -374,14 +372,14 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
                 <span className="home-wave__play-label">{waveLabel}</span>
               </button>
             </div>
-            <button type="button" className="home-wave__browse" aria-controls="home-feed" onClick={browseFeed}>
-              <span>Подборки и треки</span>
-              <ChevronDown aria-hidden="true" />
-            </button>
           </section>
         </div>
 
         <section className="home-feed" id="home-feed" ref={feed} tabIndex={-1} aria-label="Подборки и треки">
+          <button type="button" className="home-feed__handle" aria-controls="home-feed" onClick={browseFeed}>
+            <span className="home-feed__grip" aria-hidden="true" />
+            <span>Подборки и треки</span>
+          </button>
           <div className="collection-tabs" role="group" aria-label="Подборки">
             <button type="button" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites")}>
               <Heart /><span>Любимое</span>
@@ -408,8 +406,10 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
       </main>
 
       {error && <div className="player-error" role="status">{error}</div>}
-      <PlayerBar player={player} onPanel={openPanel} />
-      <nav aria-label="Основная навигация" className="bottom-nav">{navigation}</nav>
+      <div className="playback-dock">
+        <PlayerBar player={player} onPanel={openPanel} />
+        <nav aria-label="Основная навигация" className="bottom-nav">{navigation}</nav>
+      </div>
 
       <dialog
         ref={dialog}
