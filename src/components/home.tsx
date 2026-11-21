@@ -22,6 +22,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { usePlayer } from "@/components/use-player";
 import type { DemoTrack } from "@/lib/catalog-data";
+import "@/app/home-wave.css";
 
 type Variant = "a" | "b";
 type Collection = "recent" | "favorites" | "new" | "for-you";
@@ -85,7 +86,7 @@ function TrackList({ tracks, player }: { tracks: DemoTrack[]; player: Player }) 
         const favorite = favorites.includes(track.id);
 
         return (
-          <li className="track" key={track.id} data-active={active}>
+          <li className="track" key={track.id} data-active={active} data-playing={currentAndPlaying}>
             <button
               className="track-select"
               type="button"
@@ -348,7 +349,6 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
       <main className="main">
         <header className="main-header">
           <Brand />
-          <h1>Главная</h1>
           <div className="variant-control" role="group" aria-label="Вариант дизайна">
             <span className="variant-label">Вариант</span>
             <button type="button" className="variant-button" aria-pressed={variant === "a"} onClick={() => changeVariant("a")} aria-label="Вариант A">A</button>
@@ -356,14 +356,13 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
           </div>
         </header>
 
-        <section className="wave" aria-labelledby="wave-heading" data-playing={wavePlaying}>
-          <div className="wave-content">
-            <div className="wave-emblem" aria-hidden="true"><AudioLines /></div>
-            <h2 id="wave-heading"><span>Моя</span> <span>волна</span></h2>
-            <p>Микс из демокаталога SAKYRO</p>
-            <button type="button" className="wave-button" onClick={startWave} disabled={!tracks.length}>
-              {wavePlaying ? <Pause /> : <Play />}
-              {waveLabel}
+        <section className="home-wave" aria-labelledby="wave-heading" data-playing={wavePlaying}>
+          <div className="home-wave__art" aria-hidden="true" />
+          <div className="home-wave__content">
+            <h1 className="home-wave__title" id="wave-heading"><span>Моя</span>{" "}<span>волна</span></h1>
+            <button type="button" className="home-wave__play" onClick={startWave} disabled={!tracks.length}>
+              {wavePlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
+              <span>{waveLabel}</span>
             </button>
           </div>
         </section>
@@ -383,7 +382,7 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
         <section className="collection" ref={list} aria-labelledby="collection-heading">
           <header className="collection-header">
             <h2 id="collection-heading">{collectionTitles[collection]}</h2>
-            {collection === "recent" && <span>{recentTracks.length ? "История" : "Последние добавления"}</span>}
+            {collection === "recent" && <span>{recentTracks.length ? "История" : "Демокаталог"}</span>}
             {collection === "for-you" && <span>{preferredGenres.size ? "По вашим жанрам" : "Стартовая подборка"}</span>}
           </header>
           {visibleTracks[collection].length > 0

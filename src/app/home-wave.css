@@ -1,0 +1,237 @@
+.home-wave {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-block-size: clamp(360px, 29vw, 420px);
+  align-items: center;
+  overflow: clip;
+  margin-block-end: 20px;
+}
+
+.home-wave__art,
+.home-wave::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+}
+
+.home-wave__art {
+  inset: -5% -4% -10% 10%;
+}
+
+.home-wave__art::before {
+  position: absolute;
+  inset: 0;
+  background: url("/images/orbit.webp") right center / cover no-repeat;
+  content: "";
+  transform-origin: 70% 49%;
+  transition: transform 1.6s ease;
+}
+
+.home-wave::after {
+  background:
+    linear-gradient(0deg, var(--bg), transparent 22%, transparent 88%, var(--bg)),
+    linear-gradient(90deg, var(--bg) 9%, color-mix(in srgb, var(--bg) 75%, transparent) 31%, transparent 53%, transparent 91%, var(--bg));
+  content: "";
+}
+
+.home-wave__content {
+  display: grid;
+  justify-items: start;
+  gap: 32px;
+  padding: 15px 0 5px clamp(6px, 3.3vw, 54px);
+}
+
+.home-wave__title {
+  color: var(--text);
+  font: 760 clamp(5.35rem, 8.3vw, 7.4rem)/0.88 var(--font-display, system-ui, sans-serif);
+  letter-spacing: -0.087em;
+  text-shadow: 0 3px 30px color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.home-wave__title span {
+  display: block;
+}
+
+.home-wave__title span:last-child {
+  color: color-mix(in srgb, var(--text) 66%, var(--accent));
+}
+
+.home-wave__play {
+  display: inline-flex;
+  min-block-size: 51px;
+  min-inline-size: 166px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.94rem;
+  font-weight: 660;
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
+}
+
+.home-wave__play:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 82%, white);
+  transform: translateY(-1px);
+}
+
+.home-wave__play:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.home-wave__play svg {
+  inline-size: 16px;
+  block-size: 16px;
+  fill: currentColor;
+  stroke-width: 1.6;
+}
+
+[data-variant="b"] .home-wave {
+  justify-content: center;
+}
+
+[data-variant="b"] .home-wave__art {
+  inset: 3% -5% -14%;
+}
+
+[data-variant="b"] .home-wave__art::before {
+  background-image: url("/images/tide.webp");
+  background-position: center top;
+  transform-origin: 50% 47%;
+}
+
+[data-variant="b"] .home-wave::after {
+  background:
+    linear-gradient(0deg, var(--bg), transparent 27%, transparent 90%, var(--bg)),
+    linear-gradient(90deg, var(--bg), transparent 23%, transparent 77%, var(--bg)),
+    radial-gradient(ellipse at 50% 61%, color-mix(in srgb, var(--bg) 42%, transparent), transparent 60%);
+}
+
+[data-variant="b"] .home-wave__content {
+  justify-items: center;
+  gap: 22px;
+  padding: 97px 0 0;
+  text-align: center;
+}
+
+[data-variant="b"] .home-wave__title {
+  font-size: clamp(4.7rem, 7.3vw, 6.9rem);
+  font-weight: 630;
+  letter-spacing: -0.071em;
+  line-height: 1.04;
+}
+
+[data-variant="b"] .home-wave__title span {
+  display: inline;
+  color: inherit;
+}
+
+[data-variant="b"] .home-wave__title span:last-child {
+  margin-inline-start: 0.045em;
+}
+
+[data-variant="b"] .home-wave__play {
+  min-block-size: 47px;
+  border-color: color-mix(in srgb, var(--accent) 52%, transparent);
+  background: color-mix(in srgb, var(--bg) 66%, transparent);
+  color: var(--text);
+  backdrop-filter: blur(12px);
+}
+
+[data-variant="b"] .home-wave__play:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 19%, var(--bg));
+}
+
+.home-wave[data-playing="true"] .home-wave__art::before {
+  transform: scale(1.045);
+  animation: home-wave-drift 14s ease-in-out 1.6s infinite alternate;
+}
+
+@keyframes home-wave-drift {
+  from { transform: scale(1.045); }
+  to { transform: scale(1.09) translateY(-0.8%); }
+}
+
+@media (max-width: 760px) {
+  .home-wave {
+    min-block-size: clamp(290px, 82vw, 330px);
+    align-items: flex-end;
+    margin-block-end: 12px;
+  }
+
+  .home-wave__art {
+    inset: 0 -12% -2% -12%;
+  }
+
+  .home-wave__art::before {
+    background-position: 87% 3%;
+    background-size: auto 84%;
+  }
+
+  .home-wave::after {
+    background:
+      linear-gradient(0deg, var(--bg), transparent 37%, transparent 91%, var(--bg)),
+      linear-gradient(90deg, var(--bg), color-mix(in srgb, var(--bg) 60%, transparent) 17%, transparent 59%, transparent 92%, var(--bg));
+  }
+
+  .home-wave__content {
+    gap: 21px;
+    padding: 0 0 17px 8px;
+  }
+
+  .home-wave__title {
+    font-size: clamp(3.3rem, 15vw, 4.6rem);
+    letter-spacing: -0.08em;
+  }
+
+  .home-wave__play,
+  [data-variant="b"] .home-wave__play {
+    min-block-size: 46px;
+    min-inline-size: 154px;
+    font-size: 0.9rem;
+  }
+
+  [data-variant="b"] .home-wave {
+    align-items: center;
+  }
+
+  [data-variant="b"] .home-wave__art {
+    inset: 3% -11% -10%;
+  }
+
+  [data-variant="b"] .home-wave__art::before {
+    background-position: center top;
+    background-size: auto 99%;
+  }
+
+  [data-variant="b"] .home-wave::after {
+    background:
+      linear-gradient(0deg, var(--bg), transparent 27%, transparent 87%, var(--bg)),
+      linear-gradient(90deg, var(--bg), transparent 25%, transparent 75%, var(--bg)),
+      radial-gradient(ellipse at 50% 60%, color-mix(in srgb, var(--bg) 48%, transparent), transparent 64%);
+  }
+
+  [data-variant="b"] .home-wave__content {
+    gap: 18px;
+    padding: 64px 0 0;
+  }
+
+  [data-variant="b"] .home-wave__title {
+    font-size: clamp(2.8rem, 12.7vw, 4.4rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-wave__play,
+  .home-wave__art::before {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
