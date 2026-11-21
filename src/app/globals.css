@@ -182,15 +182,29 @@ button:disabled {
 
 .main {
   --content-width: 1320px;
+  --main-top-padding: 28px;
   width: min(100% - var(--rail-width), var(--content-width));
   min-height: 100dvh;
   margin-left: max(var(--rail-width), calc((100% - var(--content-width) + var(--rail-width)) / 2));
-  padding: 28px clamp(29px, 4.2vw, 74px) calc(var(--player-height) + 38px);
+  padding: var(--main-top-padding) clamp(29px, 4.2vw, 74px) calc(var(--bottom-overlay) + 38px);
+}
+
+.home-intro {
+  display: flex;
+  min-block-size: calc(100dvh - var(--main-top-padding));
+  flex-direction: column;
+  padding-block-end: var(--bottom-overlay);
+}
+
+.home-feed {
+  min-block-size: calc(100dvh - var(--bottom-overlay));
+  padding-block-start: clamp(16px, 4vw, 44px);
 }
 
 .main-header {
   display: flex;
   min-height: 34px;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -243,7 +257,6 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(5px, 2vw, 28px);
-  margin-top: 9px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -834,9 +847,10 @@ button:disabled {
   }
 
   .main {
+    --main-top-padding: max(14px, env(safe-area-inset-top));
     width: auto;
     margin: 0;
-    padding: 14px 18px calc(var(--mobile-nav-height) + var(--player-height) + env(safe-area-inset-bottom) + 27px);
+    padding: var(--main-top-padding) 18px calc(var(--bottom-overlay) + 27px);
   }
 
   .main-header {
@@ -870,7 +884,6 @@ button:disabled {
 
   .collection-tabs {
     gap: 4px;
-    margin-top: 7px;
   }
 
   .collection-tabs button {

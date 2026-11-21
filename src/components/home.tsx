@@ -2,6 +2,7 @@
 
 import {
   AudioLines,
+  ChevronDown,
   Heart,
   House,
   LibraryBig,
@@ -246,6 +247,7 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
   const dialog = useRef<HTMLDialogElement>(null);
   const closePanelButton = useRef<HTMLButtonElement>(null);
   const searchField = useRef<HTMLInputElement>(null);
+  const feed = useRef<HTMLElement>(null);
   const list = useRef<HTMLElement>(null);
   const player = usePlayer(tracks);
   const { audioRef, favorites, recentIds, queue, error, playing, playWave, togglePlayback } = player;
@@ -298,6 +300,12 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
     setPanel(nextPanel);
   }
 
+  function browseFeed() {
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    feed.current?.focus({ preventScroll: true });
+    feed.current?.scrollIntoView({ block: "start", behavior });
+  }
+
   const waveFinished = !playing && player.duration > 0 && player.elapsed >= player.duration;
   const waveCanResume = waveActive && player.activeTrack && !waveFinished;
 
@@ -347,47 +355,55 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
       </aside>
 
       <main className="main">
-        <header className="main-header">
-          <Brand />
-          <div className="variant-control" role="group" aria-label="Вариант дизайна">
-            <span className="variant-label">Вариант</span>
-            <button type="button" className="variant-button" aria-pressed={variant === "a"} onClick={() => changeVariant("a")} aria-label="Вариант A">A</button>
-            <button type="button" className="variant-button" aria-pressed={variant === "b"} onClick={() => changeVariant("b")} aria-label="Вариант B">B</button>
-          </div>
-        </header>
+        <div className="home-intro">
+          <header className="main-header">
+            <Brand />
+            <div className="variant-control" role="group" aria-label="Вариант дизайна">
+              <span className="variant-label">Вариант</span>
+              <button type="button" className="variant-button" aria-pressed={variant === "a"} onClick={() => changeVariant("a")} aria-label="Вариант A">A</button>
+              <button type="button" className="variant-button" aria-pressed={variant === "b"} onClick={() => changeVariant("b")} aria-label="Вариант B">B</button>
+            </div>
+          </header>
 
-        <section className="home-wave" aria-labelledby="wave-heading" data-playing={wavePlaying}>
-          <div className="home-wave__art" aria-hidden="true" />
-          <div className="home-wave__content">
-            <h1 className="home-wave__title" id="wave-heading"><span>Моя</span>{" "}<span>волна</span></h1>
-            <button type="button" className="home-wave__play" onClick={startWave} disabled={!tracks.length}>
-              {wavePlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
-              <span>{waveLabel}</span>
+          <section className="home-wave" aria-labelledby="wave-heading" data-playing={wavePlaying}>
+            <div className="home-wave__art" aria-hidden="true" />
+            <div className="home-wave__content">
+              <h1 className="home-wave__title" id="wave-heading"><span>Моя</span>{" "}<span>волна</span></h1>
+              <button type="button" className="home-wave__play" onClick={startWave} disabled={!tracks.length}>
+                <span className="home-wave__play-icon" aria-hidden="true">{wavePlaying ? <Pause /> : <Play />}</span>
+                <span className="home-wave__play-label">{waveLabel}</span>
+              </button>
+            </div>
+            <button type="button" className="home-wave__browse" aria-controls="home-feed" onClick={browseFeed}>
+              <span>Подборки и треки</span>
+              <ChevronDown aria-hidden="true" />
             </button>
-          </div>
-        </section>
-
-        <div className="collection-tabs" role="group" aria-label="Подборки">
-          <button type="button" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites")}>
-            <Heart /><span>Любимое</span>
-          </button>
-          <button type="button" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new")}>
-            <Sparkles /><span>Новое</span>
-          </button>
-          <button type="button" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you")}>
-            <AudioLines /><span>Для тебя</span>
-          </button>
+          </section>
         </div>
 
-        <section className="collection" ref={list} aria-labelledby="collection-heading">
-          <header className="collection-header">
-            <h2 id="collection-heading">{collectionTitles[collection]}</h2>
-            {collection === "recent" && <span>{recentTracks.length ? "История" : "Демокаталог"}</span>}
-            {collection === "for-you" && <span>{preferredGenres.size ? "По вашим жанрам" : "Стартовая подборка"}</span>}
-          </header>
-          {visibleTracks[collection].length > 0
-            ? <TrackList tracks={visibleTracks[collection]} player={trackPlayer} />
-            : <p className="empty-state">{collection === "favorites" ? "Нажмите на сердце рядом с треком, чтобы сохранить его здесь." : "В этой подборке пока нет треков."}</p>}
+        <section className="home-feed" id="home-feed" ref={feed} tabIndex={-1} aria-label="Подборки и треки">
+          <div className="collection-tabs" role="group" aria-label="Подборки">
+            <button type="button" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites")}>
+              <Heart /><span>Любимое</span>
+            </button>
+            <button type="button" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new")}>
+              <Sparkles /><span>Новое</span>
+            </button>
+            <button type="button" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you")}>
+              <AudioLines /><span>Для тебя</span>
+            </button>
+          </div>
+
+          <section className="collection" ref={list} aria-labelledby="collection-heading">
+            <header className="collection-header">
+              <h2 id="collection-heading">{collectionTitles[collection]}</h2>
+              {collection === "recent" && <span>{recentTracks.length ? "История" : "Демокаталог"}</span>}
+              {collection === "for-you" && <span>{preferredGenres.size ? "По вашим жанрам" : "Стартовая подборка"}</span>}
+            </header>
+            {visibleTracks[collection].length > 0
+              ? <TrackList tracks={visibleTracks[collection]} player={trackPlayer} />
+              : <p className="empty-state">{collection === "favorites" ? "Нажмите на сердце рядом с треком, чтобы сохранить его здесь." : "В этой подборке пока нет треков."}</p>}
+          </section>
         </section>
       </main>
 
