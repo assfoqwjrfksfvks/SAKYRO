@@ -255,7 +255,6 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
   const dialog = useRef<HTMLDialogElement>(null);
   const closePanelButton = useRef<HTMLButtonElement>(null);
   const searchField = useRef<HTMLInputElement>(null);
-  const discovery = useRef<HTMLElement>(null);
   const list = useRef<HTMLElement>(null);
   const player = usePlayer(tracks);
   const { audioRef, favorites, recentIds, queue, error, playing, playWave, togglePlayback } = player;
@@ -304,21 +303,17 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
     setCollection(nextCollection);
     setShowAllRecent(false);
     setPanel(null);
-    if (scroll) window.requestAnimationFrame(() => list.current?.scrollIntoView({ block: "start" }));
+    if (scroll) {
+      window.requestAnimationFrame(() => {
+        list.current?.focus({ preventScroll: true });
+        list.current?.scrollIntoView({ block: "start" });
+      });
+    }
   }
 
   function openPanel(nextPanel: Panel) {
     if (nextPanel === "search") setQuery("");
     setPanel(nextPanel);
-  }
-
-  function browseDiscovery() {
-    const section = discovery.current;
-    if (!section) return;
-
-    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-    section.focus({ preventScroll: true });
-    section.scrollIntoView({ block: "start", behavior });
   }
 
   const waveFinished = !playing && player.duration > 0 && player.elapsed >= player.duration;
@@ -391,20 +386,31 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
           </section>
         </div>
 
-        <section className="home-feed" id="home-feed" aria-label="Подборки и треки">
-          <div className="collection-tabs" role="group" aria-label="Подборки">
-            <button type="button" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites")}>
-              <Heart /><span>Любимое</span>
-            </button>
-            <button type="button" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new")}>
-              <Sparkles /><span>Новое</span>
-            </button>
-            <button type="button" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you")}>
-              <AudioLines /><span>Для тебя</span>
-            </button>
-          </div>
+        <div className="collection-tabs home-quick-actions" role="group" aria-label="Подборки">
+          <button type="button" aria-controls="home-collection" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites", true)}>
+            <Heart /><span>Любимое</span>
+          </button>
+          <button type="button" aria-controls="home-collection" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new", true)}>
+            <Sparkles /><span>Новое</span>
+          </button>
+          <button type="button" aria-controls="home-collection" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you", true)}>
+            <AudioLines /><span>Для тебя</span>
+          </button>
+        </div>
 
-          <section className="collection" ref={list} aria-labelledby="collection-heading">
+        <section className="home-discovery" id="home-discovery" aria-labelledby="home-discovery-heading">
+          <HomeDiscovery
+            tracks={tracks}
+            activeTrackId={player.activeTrack?.id}
+            playing={playing}
+            queue={queue}
+            onPlayMix={trackPlayer.playTrack}
+            renderTracks={(genreTracks) => <TrackList tracks={genreTracks} player={trackPlayer} />}
+          />
+        </section>
+
+        <section className="home-feed" id="home-feed" aria-label="Треки">
+          <section className="collection" id="home-collection" ref={list} tabIndex={-1} aria-labelledby="collection-heading">
             <header className="collection-header">
               <h2 id="collection-heading">{collectionTitles[collection]}</h2>
               {canExpandRecent ? (
@@ -418,21 +424,6 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
               ? <TrackList id="home-collection-tracks" tracks={displayedTracks} queueTracks={collectionTracks} player={trackPlayer} />
               : <p className="empty-state">{collection === "favorites" ? "Нажмите на сердце рядом с треком, чтобы сохранить его здесь." : "В этой подборке пока нет треков."}</p>}
           </section>
-          <button type="button" className="home-feed__handle" aria-controls="home-discovery" onClick={browseDiscovery}>
-            <span className="home-feed__grip" aria-hidden="true" />
-            <span>Миксы и жанры</span>
-          </button>
-        </section>
-
-        <section className="home-discovery" id="home-discovery" ref={discovery} tabIndex={-1} aria-label="Миксы и жанры">
-          <HomeDiscovery
-            tracks={tracks}
-            activeTrackId={player.activeTrack?.id}
-            playing={playing}
-            queue={queue}
-            onPlayMix={trackPlayer.playTrack}
-            renderTracks={(genreTracks) => <TrackList tracks={genreTracks} player={trackPlayer} />}
-          />
         </section>
       </main>
 

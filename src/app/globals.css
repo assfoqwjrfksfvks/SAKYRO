@@ -197,54 +197,13 @@ button:disabled {
 
 .home-feed {
   position: relative;
-  padding: clamp(13px, 2.1vw, 25px) clamp(14px, 3.4vw, 39px) 12px;
+  margin-block-start: clamp(20px, 3vw, 36px);
+  padding: clamp(14px, 2.1vw, 25px) clamp(14px, 3.4vw, 39px) clamp(14px, 2.1vw, 25px);
   scroll-margin-block-start: 15px;
   border: 1px solid var(--rim);
   border-radius: 29px;
   background: linear-gradient(160deg, var(--sheet), var(--surface) 320px);
-  box-shadow: inset 0 1px #ffffff0c, 0 -13px 50px #0003, 0 25px 70px #0004;
-}
-
-.home-feed__handle {
-  display: flex;
-  width: fit-content;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  margin-block-start: 8px;
-  padding: 4px 10px;
-  border: 0;
-  border-radius: 18px;
-  background: transparent;
-  color: var(--muted);
-  font-size: .85rem;
-  line-height: 1.25;
-  touch-action: pan-y pinch-zoom;
-  transition: color 160ms ease;
-}
-
-.home-feed__handle:hover {
-  color: var(--text);
-}
-
-.home-feed__handle:focus-visible {
-  outline-offset: -3px;
-}
-
-.home-feed__grip {
-  width: 7px;
-  height: 7px;
-  order: 1;
-  margin-block-start: -4px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  rotate: 45deg;
-  transition: translate 160ms ease;
-}
-
-.home-feed__handle:hover .home-feed__grip {
-  translate: 0 2px;
+  box-shadow: inset 0 1px #ffffff0c, 0 16px 38px #0003;
 }
 
 .main-header {
@@ -305,6 +264,15 @@ button:disabled {
   gap: clamp(7px, 1vw, 13px);
 }
 
+.home-quick-actions {
+  width: min(100%, 690px);
+  margin-inline: auto;
+}
+
+.home-quick-actions + .home-discovery {
+  margin-block-start: clamp(17px, 3vw, 32px);
+}
+
 .collection-tabs button {
   position: relative;
   display: inline-flex;
@@ -349,7 +317,6 @@ button:disabled {
 }
 
 .collection {
-  margin-top: clamp(18px, 3vw, 29px);
   scroll-margin: 18px 0 calc(var(--bottom-overlay) + 14px);
 }
 
@@ -992,10 +959,6 @@ button:disabled {
   .collection-tabs button svg {
     width: 14px;
     height: 14px;
-  }
-
-  .collection {
-    margin-top: 16px;
   }
 
   .collection-header {

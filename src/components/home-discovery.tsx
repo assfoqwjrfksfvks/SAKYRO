@@ -13,14 +13,6 @@ const mixes = [
 ];
 
 const featuredGenres = ["Поп", "Фонк"];
-const trackPlural = new Intl.PluralRules("ru");
-
-function trackCount(count: number) {
-  const form = trackPlural.select(count);
-  if (form === "one") return `${count} трек`;
-  if (form === "few") return `${count} трека`;
-  return `${count} треков`;
-}
 
 export function HomeDiscovery({
   tracks,
@@ -43,63 +35,44 @@ export function HomeDiscovery({
     ...featuredGenres.filter((name) => available.has(name)),
     ...Array.from(available).filter((name) => !featuredGenres.includes(name)),
   ];
-  const selectedGenre = genre && available.has(genre) ? genre : genres[0];
+  const selectedGenre = genre && available.has(genre) ? genre : undefined;
   const queuedIds = new Set(queue.map((track) => track.id));
 
   return (
     <div className="home-discovery-content">
-      <section className="home-discovery-section" aria-labelledby="home-mixes-heading">
-        <h2 id="home-mixes-heading">Миксы</h2>
-        <div className="home-mixes">
-          {mixes.map((mix) => {
-            const mixTracks = mix.genres.flatMap((genre) => tracks.filter((track) => track.genre === genre));
-            const firstTrack = mixTracks[0];
-            if (!firstTrack) return null;
+      <h2 id="home-discovery-heading">Миксы и жанры</h2>
+      <div className="home-mixes" role="group" aria-label="Миксы">
+        {mixes.map((mix) => {
+          const mixTracks = mix.genres.flatMap((genre) => tracks.filter((track) => track.genre === genre));
+          const firstTrack = mixTracks[0];
+          if (!firstTrack) return null;
 
-            const ids = mixTracks.map((track) => track.id);
-            const mixIsPlaying = playing && activeTrackId !== undefined && ids.includes(activeTrackId)
-              && ids.length === queuedIds.size && ids.every((id) => queuedIds.has(id));
-            const count = trackCount(ids.length);
+          const ids = mixTracks.map((track) => track.id);
+          const mixIsPlaying = playing && activeTrackId !== undefined && ids.includes(activeTrackId)
+            && ids.length === queuedIds.size && ids.every((id) => queuedIds.has(id));
 
-            return (
-              <button
-                key={mix.id}
-                type="button"
-                className="home-mix"
-                data-mix={mix.id}
-                data-playing={mixIsPlaying}
-                aria-label={`Включить микс «${mix.title}», ${count}`}
-                onClick={() => onPlayMix(firstTrack.id, ids)}
-              >
-                <span className="home-mix__covers" aria-hidden="true">
-                  {mixTracks.slice(0, 3).map((track) => (
-                    <Image
-                      key={track.id}
-                      className="home-mix__cover"
-                      src={track.cover}
-                      width={84}
-                      height={84}
-                      alt=""
-                      unoptimized
-                    />
-                  ))}
-                </span>
-                <span className="home-mix__detail">
-                  <span className="home-mix__title">{mix.title}</span>
-                  <span className="home-mix__count">{count}</span>
-                </span>
-                <span className="home-mix__play" aria-hidden="true">
-                  {mixIsPlaying ? <AudioLines /> : <Play />}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+          return (
+            <button
+              key={mix.id}
+              type="button"
+              className="home-mix"
+              data-mix={mix.id}
+              data-playing={mixIsPlaying}
+              aria-label={`Включить микс «${mix.title}»`}
+              onClick={() => onPlayMix(firstTrack.id, ids)}
+            >
+              <Image className="home-mix__cover" src={firstTrack.cover} width={40} height={40} alt="" unoptimized />
+              <span className="home-mix__title">{mix.title}</span>
+              <span className="home-mix__play" aria-hidden="true">
+                {mixIsPlaying ? <AudioLines /> : <Play />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {genres.length > 0 && (
-        <section className="home-discovery-section" aria-labelledby="home-genres-heading">
-          <h2 id="home-genres-heading">Жанры</h2>
+        <>
           <div className="home-genre-options" role="group" aria-label="Музыкальные жанры">
             {genres.map((name) => (
               <button
@@ -108,16 +81,16 @@ export function HomeDiscovery({
                 className="home-genre-option"
                 aria-controls="home-genre-tracks"
                 aria-pressed={name === selectedGenre}
-                onClick={() => setGenre(name)}
+                onClick={() => setGenre((current) => current === name ? undefined : name)}
               >
                 {name}
               </button>
             ))}
           </div>
-          <div className="home-genre-tracks" id="home-genre-tracks">
-            {renderTracks(tracks.filter((track) => track.genre === selectedGenre))}
+          <div className="home-genre-tracks" id="home-genre-tracks" hidden={!selectedGenre}>
+            {selectedGenre && renderTracks(tracks.filter((track) => track.genre === selectedGenre))}
           </div>
-        </section>
+        </>
       )}
     </div>
   );
