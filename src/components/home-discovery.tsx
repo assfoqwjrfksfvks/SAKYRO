@@ -2,7 +2,6 @@
 
 import { AudioLines, Play } from "lucide-react";
 import Image from "next/image";
-import { useState, type ReactNode } from "react";
 
 import type { DemoTrack } from "@/lib/catalog-data";
 import "@/app/home-discovery.css";
@@ -20,22 +19,22 @@ export function HomeDiscovery({
   playing,
   queue,
   onPlayMix,
-  renderTracks,
+  selectedGenre,
+  onSelectGenre,
 }: {
   tracks: DemoTrack[];
   activeTrackId?: string;
   playing: boolean;
   queue: DemoTrack[];
   onPlayMix: (id: string, trackIds: readonly string[]) => void;
-  renderTracks: (tracks: DemoTrack[]) => ReactNode;
+  selectedGenre?: string;
+  onSelectGenre: (genre: string) => void;
 }) {
-  const [genre, setGenre] = useState<string>();
   const available = new Set(tracks.map((track) => track.genre));
   const genres = [
     ...featuredGenres.filter((name) => available.has(name)),
     ...Array.from(available).filter((name) => !featuredGenres.includes(name)),
   ];
-  const selectedGenre = genre && available.has(genre) ? genre : undefined;
   const queuedIds = new Set(queue.map((track) => track.id));
 
   return (
@@ -60,36 +59,33 @@ export function HomeDiscovery({
               aria-label={`Включить микс «${mix.title}»`}
               onClick={() => onPlayMix(firstTrack.id, ids)}
             >
-              <Image className="home-mix__cover" src={firstTrack.cover} width={40} height={40} alt="" unoptimized />
-              <span className="home-mix__title">{mix.title}</span>
-              <span className="home-mix__play" aria-hidden="true">
-                {mixIsPlaying ? <AudioLines /> : <Play />}
+              <span className="home-mix__art" aria-hidden="true">
+                <Image className="home-mix__cover" src={firstTrack.cover} width={24} height={24} alt="" unoptimized />
+                <span className="home-mix__play">
+                  {mixIsPlaying ? <AudioLines /> : <Play />}
+                </span>
               </span>
+              <span className="home-mix__title">{mix.title}</span>
             </button>
           );
         })}
       </div>
 
       {genres.length > 0 && (
-        <>
-          <div className="home-genre-options" role="group" aria-label="Музыкальные жанры">
-            {genres.map((name) => (
-              <button
-                key={name}
-                type="button"
-                className="home-genre-option"
-                aria-controls="home-genre-tracks"
-                aria-pressed={name === selectedGenre}
-                onClick={() => setGenre((current) => current === name ? undefined : name)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-          <div className="home-genre-tracks" id="home-genre-tracks" hidden={!selectedGenre}>
-            {selectedGenre && renderTracks(tracks.filter((track) => track.genre === selectedGenre))}
-          </div>
-        </>
+        <div className="home-genre-options" role="group" aria-label="Музыкальные жанры">
+          {genres.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className="home-genre-option"
+              aria-controls="home-collection"
+              aria-pressed={name === selectedGenre}
+              onClick={() => onSelectGenre(name)}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
