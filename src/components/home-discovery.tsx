@@ -40,7 +40,6 @@ export function HomeDiscovery({
 
   return (
     <div className="home-discovery-content">
-      <h2 id="home-discovery-heading">Миксы и жанры</h2>
       <div className="home-mixes" role="group" aria-label="Миксы">
         {mixes.map((mix) => {
           const mixTracks = mix.genres.flatMap((genre) => tracks.filter((track) => track.genre === genre));

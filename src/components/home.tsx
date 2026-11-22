@@ -2,6 +2,7 @@
 
 import {
   AudioLines,
+  ChevronDown,
   Heart,
   House,
   LibraryBig,
@@ -13,7 +14,6 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
-  Sparkles,
   Volume2,
   X,
 } from "lucide-react";
@@ -249,6 +249,7 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
   const [variant, setVariant] = useState(initialVariant);
   const [collection, setCollection] = useState<Collection>("recent");
   const [showAllRecent, setShowAllRecent] = useState(false);
+  const [showDiscovery, setShowDiscovery] = useState(false);
   const [panel, setPanel] = useState<Panel | null>(null);
   const [query, setQuery] = useState("");
   const [waveActive, setWaveActive] = useState(false);
@@ -386,27 +387,34 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
           </section>
         </div>
 
-        <div className="collection-tabs home-quick-actions" role="group" aria-label="Подборки">
-          <button type="button" aria-controls="home-collection" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites", true)}>
-            <Heart /><span>Любимое</span>
-          </button>
-          <button type="button" aria-controls="home-collection" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new", true)}>
-            <Sparkles /><span>Новое</span>
-          </button>
-          <button type="button" aria-controls="home-collection" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you", true)}>
-            <AudioLines /><span>Для тебя</span>
-          </button>
-        </div>
-
-        <section className="home-discovery" id="home-discovery" aria-labelledby="home-discovery-heading">
-          <HomeDiscovery
-            tracks={tracks}
-            activeTrackId={player.activeTrack?.id}
-            playing={playing}
-            queue={queue}
-            onPlayMix={trackPlayer.playTrack}
-            renderTracks={(genreTracks) => <TrackList tracks={genreTracks} player={trackPlayer} />}
-          />
+        <section className="home-discovery" id="home-discovery" aria-label="Подборки">
+          <div className="home-discovery__toolbar">
+            <div className="collection-tabs home-quick-actions" role="group" aria-label="Быстрые подборки">
+              <button type="button" aria-controls="home-collection" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites", true)}>
+                Любимое
+              </button>
+              <button type="button" aria-controls="home-collection" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new", true)}>
+                Новое
+              </button>
+              <button type="button" aria-controls="home-collection" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you", true)}>
+                Для тебя
+              </button>
+            </div>
+            <button type="button" className="home-discovery__toggle" aria-controls="home-discovery-results" aria-expanded={showDiscovery} onClick={() => setShowDiscovery((open) => !open)}>
+              Миксы и жанры
+              <ChevronDown aria-hidden="true" />
+            </button>
+          </div>
+          <div className="home-discovery-results" id="home-discovery-results" hidden={!showDiscovery}>
+            <HomeDiscovery
+              tracks={tracks}
+              activeTrackId={player.activeTrack?.id}
+              playing={playing}
+              queue={queue}
+              onPlayMix={trackPlayer.playTrack}
+              renderTracks={(genreTracks) => <TrackList tracks={genreTracks} player={trackPlayer} />}
+            />
+          </div>
         </section>
 
         <section className="home-feed" id="home-feed" aria-label="Треки">
@@ -414,8 +422,8 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
             <header className="collection-header">
               <h2 id="collection-heading">{collectionTitles[collection]}</h2>
               {canExpandRecent ? (
-                <button type="button" className="collection-expand" aria-controls="home-collection-tracks" aria-expanded={showAllRecent} onClick={() => setShowAllRecent((value) => !value)}>
-                  {showAllRecent ? "Свернуть" : recentTracks.length ? "Вся история" : "Все демотреки"}
+                <button type="button" className="collection-expand" aria-controls="home-collection-tracks" aria-expanded={showAllRecent} title={showAllRecent ? undefined : recentTracks.length ? "Вся история" : "Все демотреки"} onClick={() => setShowAllRecent((value) => !value)}>
+                  {showAllRecent ? "Свернуть" : "Ещё"}
                 </button>
               ) : collection === "recent" && <span>{recentTracks.length ? "История" : "Демокаталог"}</span>}
               {collection === "for-you" && <span>{preferredGenres.size ? "По вашим жанрам" : "Стартовая подборка"}</span>}
