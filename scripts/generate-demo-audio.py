@@ -1,5 +1,6 @@
 """Render the original SAKYRO demos with Python 3 and FFmpeg."""
 
+from argparse import ArgumentParser
 from array import array
 from dataclasses import dataclass
 from math import cos, exp, pi, sin, sqrt, tanh, tau
@@ -39,6 +40,10 @@ SONGS = (
          (70, 74, 75, 79, 77, 75, 72, 70), "piano", "solo"),
     Song("city-sleeps", 29, 86, ((45, 57, 60, 64), (41, 57, 60, 64), (38, 55, 57, 65), (40, 56, 59, 64)),
          (72, 69, 67, 64, 67, 69, 65, 64), "keys", "downtempo"),
+    Song("city-lights", 30, 116, ((43, 59, 62, 67), (38, 57, 62, 66), (40, 55, 59, 64), (36, 55, 60, 64)),
+         (71, 74, 79, 76, 74, 71, 69, 67), "glow", "pop"),
+    Song("after-midnight", 32, 77, ((35, 54, 59, 62), (31, 55, 59, 62), (38, 57, 62, 66), (33, 54, 57, 61)),
+         (71, 74, 78, 71, 69, 66, 74, 73), "cowbell", "phonk"),
 )
 
 
@@ -68,6 +73,10 @@ class StereoMix:
             elif voice == "bass":
                 envelope = min(time / 0.04, 1, (length - time) / 0.19) * exp(-time * 0.52)
                 value = sin(phase) + 0.14 * sin(phase * 2)
+            elif voice == "sub":
+                envelope = min(time / 0.012, 1, (length - time) / 0.13) * exp(-time * 1.05)
+                glide = phase + 1.8 * (1 - exp(-time * 15))
+                value = tanh(2.5 * sin(glide) + 0.55 * sin(2 * glide))
             else:
                 envelope = min(time / 0.018, 1, (length - time) / 0.19)
                 if voice == "bell":
@@ -79,6 +88,12 @@ class StereoMix:
                 elif voice == "piano":
                     value = (sin(phase) + sin(phase * 1.001 + 0.27)) * 0.52 * exp(-time * 1.45)
                     value += 0.32 * sin(phase * 2.003) * exp(-time * 2.8) + 0.17 * sin(phase * 3.009) * exp(-time * 6)
+                elif voice == "glow":
+                    value = (0.56 * sin(phase) + 0.40 * sin(phase * 1.006) + 0.25 * sin(phase * 2)) * exp(-time * 2.7)
+                    value += 0.14 * sin(phase * 3) * exp(-time * 7) + 0.07 * sin(phase * 5) * exp(-time * 10)
+                elif voice == "cowbell":
+                    phase_mod = 0.8 * sin(phase * 1.47) * exp(-time * 10)
+                    value = tanh(1.3 * sin(phase + phase_mod) + 0.74 * sin(phase * 1.54)) * exp(-time * 7.5)
                 else:
                     value = (sin(phase) + 0.26 * sin(phase * 2) + 0.09 * sin(phase * 3)) * exp(-time * 4.5)
 
@@ -132,6 +147,42 @@ class StereoMix:
             wave.writeframes(samples.tobytes())
 
 
+def pop_bar(mix, song, index, beat, start, root, chord):
+    for tick in (0, 1, 2, 3):
+        mix.percussion(start + tick * beat, 0.38, "kick")
+    for tick in (1, 3):
+        mix.percussion(start + tick * beat, 0.23, "snare", -0.16)
+    for tick in (0.5, 1.5, 2.5, 3.5):
+        mix.percussion(start + tick * beat, 0.17, "hat", 0.35)
+        mix.tone(start + tick * beat, 0.48 * beat, root, 0.25, 0, "bass")
+        for pan, note in zip((-0.43, 0.32, 0.12), chord):
+            mix.tone(start + tick * beat, 0.62 * beat, note, 0.12, pan, "glow")
+
+    offsets = (0, 0.75, 1.5, 2.25, 3.0, 3.5) if index % 4 < 2 else (0.25, 1, 1.75, 2.75, 3.25)
+    for step, tick in enumerate(offsets):
+        note = song.melody[(index * 2 + step) % len(song.melody)]
+        mix.tone(start + tick * beat, 0.75 * beat, note, 0.22, 0.17, song.lead)
+        mix.tone(start + (tick + 0.75) * beat, 0.6 * beat, note, 0.055, -0.62, song.lead)
+
+
+def phonk_bar(mix, song, index, beat, start, root, chord):
+    for tick, note, length in ((0, root, 1.22), (1.75, root, 0.8), (2.75, root + 5, 0.64), (3.5, root, 0.46)):
+        mix.tone(start + tick * beat, length * beat, note, 0.41, 0, "sub")
+    for tick in (0, 1.75, 3.5):
+        mix.percussion(start + tick * beat, 0.53, "kick")
+    mix.percussion(start + 2 * beat, 0.34, "snare", -0.17)
+
+    hat_ticks = (0.5, 1, 1.5, 2.5, 3, 3.25, 3.5, 3.75) if index % 2 else (0.5, 1, 1.5, 2.5, 3, 3.5)
+    for step, tick in enumerate(hat_ticks):
+        mix.percussion(start + tick * beat, 0.17 - 0.016 * (step % 3), "hat", 0.36)
+
+    mix.tone(start, 4.3 * beat, chord[0], 0.053, -0.35, "pad")
+    for step, tick in enumerate((0.25, 0.75, 1.5, 2.25, 3, 3.375)):
+        note = song.melody[(index * 2 + step) % len(song.melody)]
+        mix.tone(start + tick * beat, 0.58 * beat, note, 0.27 if step % 3 == 0 else 0.19, -0.07, song.lead)
+        mix.tone(start + (tick + 0.625) * beat, 0.53 * beat, note - 12, 0.055, 0.58, song.lead)
+
+
 def arrange(song, seed):
     mix = StereoMix(song.duration, seed)
     beat = 60 / song.tempo
@@ -141,6 +192,13 @@ def arrange(song, seed):
     for index in range(bar_count):
         start = index * bar
         root, *chord = song.chords[index % len(song.chords)]
+
+        if song.pattern == "pop":
+            pop_bar(mix, song, index, beat, start, root, chord)
+            continue
+        if song.pattern == "phonk":
+            phonk_bar(mix, song, index, beat, start, root, chord)
+            continue
 
         if song.pattern == "solo":
             mix.tone(start, 2.9 * beat, root + 12, 0.24, -0.24, "piano")
@@ -182,12 +240,22 @@ def arrange(song, seed):
 
 
 def main():
+    parser = ArgumentParser(description=__doc__)
+    parser.add_argument("tracks", nargs="*", metavar="TRACK", help="Track identifiers. Renders every track if omitted.")
+    requested = set(parser.parse_args().tracks)
+    unknown = requested - {song.name for song in SONGS}
+    if unknown:
+        parser.error(f"Unknown tracks: {', '.join(sorted(unknown))}")
+
     OUTPUT.mkdir(parents=True, exist_ok=True)
 
     with TemporaryDirectory(prefix="sakyro-audio-") as scratch:
         wav = Path(scratch) / "mix.wav"
 
         for index, song in enumerate(SONGS):
+            if requested and song.name not in requested:
+                continue
+
             arrange(song, seed=4200 + index).save(wav)
             run([
                 "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(wav),

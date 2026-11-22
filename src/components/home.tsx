@@ -20,6 +20,7 @@ import {
 import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
+import { HomeDiscovery } from "@/components/home-discovery";
 import { usePlayer } from "@/components/use-player";
 import type { DemoTrack } from "@/lib/catalog-data";
 import "@/app/home-wave.css";
@@ -28,6 +29,8 @@ type Variant = "a" | "b";
 type Collection = "recent" | "favorites" | "new" | "for-you";
 type Panel = "search" | "library" | "queue" | "player";
 type Player = ReturnType<typeof usePlayer>;
+
+const recentPreviewSize = 3;
 
 const collectionTitles: Record<Collection, string> = {
   recent: "Недавние треки",
@@ -75,11 +78,16 @@ function Brand() {
   );
 }
 
-function TrackList({ tracks, player }: { tracks: DemoTrack[]; player: Player }) {
+function TrackList({ tracks, player, queueTracks = tracks, id }: {
+  tracks: DemoTrack[];
+  player: Player;
+  queueTracks?: DemoTrack[];
+  id?: string;
+}) {
   const { activeTrack, playing, favorites, playTrack, toggleFavorite, togglePlayback } = player;
 
   return (
-    <ul className="track-list">
+    <ul className="track-list" id={id}>
       {tracks.map((track) => {
         const active = track.id === activeTrack?.id;
         const currentAndPlaying = active && playing;
@@ -91,7 +99,7 @@ function TrackList({ tracks, player }: { tracks: DemoTrack[]; player: Player }) 
               className="track-select"
               type="button"
               aria-label={`${currentAndPlaying ? "Поставить на паузу" : "Слушать"}: ${track.title}`}
-              onClick={() => active ? togglePlayback() : playTrack(track.id, tracks.map(({ id }) => id))}
+              onClick={() => active ? togglePlayback() : playTrack(track.id, queueTracks.map(({ id }) => id))}
             >
               <span className="track-art">
                 <Cover track={track} />
@@ -240,13 +248,14 @@ function PlayerBar({ player, onPanel }: { player: Player; onPanel: (panel: Panel
 export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialVariant: Variant }) {
   const [variant, setVariant] = useState(initialVariant);
   const [collection, setCollection] = useState<Collection>("recent");
+  const [showAllRecent, setShowAllRecent] = useState(false);
   const [panel, setPanel] = useState<Panel | null>(null);
   const [query, setQuery] = useState("");
   const [waveActive, setWaveActive] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const closePanelButton = useRef<HTMLButtonElement>(null);
   const searchField = useRef<HTMLInputElement>(null);
-  const feed = useRef<HTMLElement>(null);
+  const discovery = useRef<HTMLElement>(null);
   const list = useRef<HTMLElement>(null);
   const player = usePlayer(tracks);
   const { audioRef, favorites, recentIds, queue, error, playing, playWave, togglePlayback } = player;
@@ -272,13 +281,16 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
   const visibleTracks: Record<Collection, DemoTrack[]> = {
     recent: recentTracks.length ? recentTracks : tracks,
     favorites: favoriteTracks,
-    new: tracks,
+    new: [...tracks].reverse(),
     "for-you": selectedTracks,
   };
   const normalizedQuery = query.trim().toLocaleLowerCase("ru-RU");
   const searchResults = tracks.filter((track) =>
     `${track.title} ${track.artist} ${track.genre}`.toLocaleLowerCase("ru-RU").includes(normalizedQuery),
   );
+  const collectionTracks = visibleTracks[collection];
+  const canExpandRecent = collection === "recent" && collectionTracks.length > recentPreviewSize;
+  const displayedTracks = canExpandRecent && !showAllRecent ? collectionTracks.slice(0, recentPreviewSize) : collectionTracks;
 
   function changeVariant(nextVariant: Variant) {
     setVariant(nextVariant);
@@ -290,6 +302,7 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
 
   function showCollection(nextCollection: Collection, scroll = false) {
     setCollection(nextCollection);
+    setShowAllRecent(false);
     setPanel(null);
     if (scroll) window.requestAnimationFrame(() => list.current?.scrollIntoView({ block: "start" }));
   }
@@ -299,10 +312,13 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
     setPanel(nextPanel);
   }
 
-  function browseFeed() {
+  function browseDiscovery() {
+    const section = discovery.current;
+    if (!section) return;
+
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-    feed.current?.focus({ preventScroll: true });
-    feed.current?.scrollIntoView({ block: "start", behavior });
+    section.focus({ preventScroll: true });
+    section.scrollIntoView({ block: "start", behavior });
   }
 
   const waveFinished = !playing && player.duration > 0 && player.elapsed >= player.duration;
@@ -375,11 +391,7 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
           </section>
         </div>
 
-        <section className="home-feed" id="home-feed" ref={feed} tabIndex={-1} aria-label="Подборки и треки">
-          <button type="button" className="home-feed__handle" aria-controls="home-feed" onClick={browseFeed}>
-            <span className="home-feed__grip" aria-hidden="true" />
-            <span>Подборки и треки</span>
-          </button>
+        <section className="home-feed" id="home-feed" aria-label="Подборки и треки">
           <div className="collection-tabs" role="group" aria-label="Подборки">
             <button type="button" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites")}>
               <Heart /><span>Любимое</span>
@@ -395,13 +407,32 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
           <section className="collection" ref={list} aria-labelledby="collection-heading">
             <header className="collection-header">
               <h2 id="collection-heading">{collectionTitles[collection]}</h2>
-              {collection === "recent" && <span>{recentTracks.length ? "История" : "Демокаталог"}</span>}
+              {canExpandRecent ? (
+                <button type="button" className="collection-expand" aria-controls="home-collection-tracks" aria-expanded={showAllRecent} onClick={() => setShowAllRecent((value) => !value)}>
+                  {showAllRecent ? "Свернуть" : recentTracks.length ? "Вся история" : "Все демотреки"}
+                </button>
+              ) : collection === "recent" && <span>{recentTracks.length ? "История" : "Демокаталог"}</span>}
               {collection === "for-you" && <span>{preferredGenres.size ? "По вашим жанрам" : "Стартовая подборка"}</span>}
             </header>
-            {visibleTracks[collection].length > 0
-              ? <TrackList tracks={visibleTracks[collection]} player={trackPlayer} />
+            {displayedTracks.length > 0
+              ? <TrackList id="home-collection-tracks" tracks={displayedTracks} queueTracks={collectionTracks} player={trackPlayer} />
               : <p className="empty-state">{collection === "favorites" ? "Нажмите на сердце рядом с треком, чтобы сохранить его здесь." : "В этой подборке пока нет треков."}</p>}
           </section>
+          <button type="button" className="home-feed__handle" aria-controls="home-discovery" onClick={browseDiscovery}>
+            <span className="home-feed__grip" aria-hidden="true" />
+            <span>Миксы и жанры</span>
+          </button>
+        </section>
+
+        <section className="home-discovery" id="home-discovery" ref={discovery} tabIndex={-1} aria-label="Миксы и жанры">
+          <HomeDiscovery
+            tracks={tracks}
+            activeTrackId={player.activeTrack?.id}
+            playing={playing}
+            queue={queue}
+            onPlayMix={trackPlayer.playTrack}
+            renderTracks={(genreTracks) => <TrackList tracks={genreTracks} player={trackPlayer} />}
+          />
         </section>
       </main>
 

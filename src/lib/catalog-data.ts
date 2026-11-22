@@ -8,7 +8,7 @@ export type DemoTrack = {
   audio: string;
 };
 
-export const demoTracks: readonly DemoTrack[] = [
+const initialDemoTracks: readonly DemoTrack[] = [
   {
     id: "night-signal",
     title: "Ночной сигнал",
@@ -64,3 +64,31 @@ export const demoTracks: readonly DemoTrack[] = [
     audio: "/audio/city-sleeps.mp3",
   },
 ];
+
+const genreDemoTracks: readonly DemoTrack[] = [
+  {
+    id: "city-lights",
+    title: "Огни города",
+    artist: "Мягкий ток",
+    genre: "Поп",
+    duration: 30,
+    cover: "/images/cover-7.webp",
+    audio: "/audio/city-lights.mp3",
+  },
+  {
+    id: "after-midnight",
+    title: "После полуночи",
+    artist: "Ночной контур",
+    genre: "Фонк",
+    duration: 32,
+    cover: "/images/cover-8.webp",
+    audio: "/audio/after-midnight.mp3",
+  },
+];
+
+export const demoCatalogSeeds = [
+  { name: "demo-catalog-v1", firstArtistNumber: 1, tracks: initialDemoTracks },
+  { name: "demo-catalog-v2", firstArtistNumber: 7, tracks: genreDemoTracks },
+] as const;
+
+export const demoTracks: readonly DemoTrack[] = demoCatalogSeeds.flatMap((seed) => seed.tracks);

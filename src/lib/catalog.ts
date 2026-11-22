@@ -1,10 +1,9 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { demoTracks, type DemoTrack } from "./catalog-data.ts";
+import { demoCatalogSeeds, type DemoTrack } from "./catalog-data.ts";
 
 const migrationFiles = ["001_catalog.sql"];
-const demoSeed = "demo-catalog-v1";
 
 let catalogDatabase: DatabaseSync | undefined;
 
@@ -30,20 +29,24 @@ function migrateAndSeed(database: DatabaseSync) {
       markApplied.run(name);
     }
 
-    if (!applied.get(demoSeed)) {
-      const addArtist = database.prepare("INSERT INTO artists (id, name) VALUES (?, ?)");
-      const addTrack = database.prepare(`
-        INSERT INTO demo_tracks (id, artist_id, title, genre, duration, cover, audio, position)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `);
+    const addArtist = database.prepare("INSERT INTO artists (id, name) VALUES (?, ?)");
+    const addTrack = database.prepare(`
+      INSERT INTO demo_tracks (id, artist_id, title, genre, duration, cover, audio, position)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const findNextPosition = database.prepare("SELECT COALESCE(MAX(position) + 1, 0) AS position FROM demo_tracks");
 
-      for (const [position, track] of demoTracks.entries()) {
-        const artistId = `demo-artist-${position + 1}`;
+    for (const { name, firstArtistNumber, tracks } of demoCatalogSeeds) {
+      if (applied.get(name)) continue;
+
+      const { position } = findNextPosition.get() as { position: number };
+      for (const [index, track] of tracks.entries()) {
+        const artistId = `demo-artist-${firstArtistNumber + index}`;
         addArtist.run(artistId, track.artist);
-        addTrack.run(track.id, artistId, track.title, track.genre, track.duration, track.cover, track.audio, position);
+        addTrack.run(track.id, artistId, track.title, track.genre, track.duration, track.cover, track.audio, position + index);
       }
 
-      markApplied.run(demoSeed);
+      markApplied.run(name);
     }
 
     database.exec("COMMIT");
