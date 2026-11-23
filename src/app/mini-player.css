@@ -1,0 +1,159 @@
+.mini-dock {
+  position: fixed;
+  z-index: 30;
+  inset: auto 0 var(--dock-offset);
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--gutter);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(calc(100% + var(--dock-offset)));
+  pointer-events: none;
+  transition: opacity .24s ease, transform .28s ease, visibility .28s;
+}
+
+.mini-dock[data-visible="true"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.mini-player {
+  display: grid;
+  grid-template: "track controls tools" 24px "track timeline tools" 13px / minmax(0, 1fr) minmax(132px, 188px) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  width: min(100%, 920px);
+  min-height: var(--dock-height);
+  padding: 3px 11px;
+  border: 1px solid rgb(238 217 255 / .13);
+  border-radius: 15px;
+  background: rgb(33 29 45 / .9);
+  box-shadow: 0 10px 44px rgb(0 0 0 / .48), 0 1px rgb(255 255 255 / .04) inset;
+  backdrop-filter: blur(24px) saturate(135%);
+}
+
+.app-shell[data-screen="home"] .mini-player { width: min(100%, calc(var(--feed-width) - 20px)); }
+.mini-dock[data-visible="true"] .mini-player { pointer-events: auto; }
+
+.mini-info {
+  grid-area: track;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 3px;
+}
+
+.mini-track {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  text-align: start;
+}
+
+.mini-track .track-cover { width: 32px; height: 32px; border-radius: 6px; }
+
+.mini-track-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  font-size: .72rem;
+  line-height: 1.1;
+}
+
+.mini-track-copy > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-track-copy > span { color: var(--muted); font-size: .67rem; }
+.mini-transport, .mini-actions { display: flex; align-items: center; gap: 3px; }
+.mini-transport { grid-area: controls; justify-self: center; }
+.mini-actions { grid-area: tools; justify-self: end; }
+.mini-heart[aria-pressed="true"] svg { fill: currentColor; }
+
+.mini-player .icon-button { width: 26px; height: 26px; }
+.mini-player .icon-button svg { width: 13px; height: 13px; }
+
+.mini-player .mini-play {
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.mini-player .mini-play:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent), white 15%);
+  color: var(--accent-ink);
+}
+.mini-play svg { fill: currentColor; }
+
+.mini-timeline, .mini-volume {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.mini-timeline { grid-area: timeline; font-size: .59rem; font-variant-numeric: tabular-nums; }
+.mini-volume svg { width: 13px; height: 13px; flex: none; }
+
+.mini-range {
+  --range-track: linear-gradient(90deg, var(--accent) var(--range-value), rgb(255 255 255 / .2) var(--range-value));
+  appearance: none;
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 14px;
+  margin: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.mini-volume .mini-range { min-width: 40px; width: clamp(44px, 5vw, 70px); }
+
+.mini-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 99px;
+  background: var(--range-track);
+}
+.mini-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 7px;
+  height: 7px;
+  margin-top: -2px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.mini-range::-moz-range-track { height: 3px; border-radius: 99px; background: var(--range-track); }
+.mini-range::-moz-range-thumb { width: 7px; height: 7px; border: 0; border-radius: 50%; background: var(--accent); }
+
+@media (max-width: 700px) {
+  .mini-player {
+    position: relative;
+    grid-template: "track controls tools" auto "timeline timeline timeline" 12px / minmax(0, 1fr) auto auto;
+    column-gap: 5px;
+    padding: 4px 9px;
+    border-radius: 15px;
+  }
+  .app-shell[data-screen="home"] .mini-player { width: 100%; }
+  .mini-player .icon-button { width: 32px; height: 33px; }
+  .mini-player .mini-play { width: 34px; height: 34px; }
+  .mini-player .mini-play svg { width: 16px; height: 16px; }
+  .mini-track .track-cover { width: 32px; height: 32px; }
+  .mini-extra, .mini-heart, .mini-volume, .mini-timeline > span { display: none; }
+  .mini-transport { gap: 1px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-dock { transition: none; }
+}

@@ -1,0 +1,329 @@
+.track-list {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-list .track {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: clamp(4px, 1vw, 12px);
+  padding-inline: clamp(4px, 1vw, 12px);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition: background-color 170ms ease, border-color 170ms ease;
+}
+
+.track-list .track:is(:hover, :focus-within) {
+  background: rgba(var(--accent-rgb, 222, 202, 255), .055);
+}
+
+.track-list .track[data-active="true"] {
+  border-color: rgba(var(--accent-rgb, 222, 202, 255), .15);
+  background: rgba(var(--accent-rgb, 222, 202, 255), .092);
+}
+
+.track-list .track-select {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(76px, 21%) 37px;
+  align-items: center;
+  gap: clamp(9px, 1.35vw, 18px);
+  padding: 7px 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  text-align: start;
+}
+
+.track-list .track-select:focus-visible,
+.track-list .track-favorite:focus-visible {
+  outline-offset: -2px;
+}
+
+.track-art {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.track-cover {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--surface);
+  object-fit: cover;
+}
+
+.track-art-control {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(13 8 21 / 67%);
+  color: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.track-art-control > svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+  stroke-width: 1.2;
+}
+
+.track-select:focus-visible .track-art-control,
+.track[data-playing="true"] .track-art-control {
+  opacity: 1;
+}
+
+.track-art-control > .track-art-pause {
+  display: none;
+}
+
+.track-equalizer {
+  display: flex;
+  align-items: end;
+  gap: 2px;
+  height: 17px;
+}
+
+.track-equalizer span {
+  width: 3px;
+  height: 69%;
+  border-radius: 999px;
+  background: currentColor;
+  transform-origin: bottom;
+  animation: track-equalizer-beat .72s ease-in-out infinite alternate;
+}
+
+.track-equalizer span:nth-child(2) {
+  height: 100%;
+  animation-delay: -.45s;
+}
+
+.track-equalizer span:nth-child(3) {
+  height: 52%;
+  animation-delay: -.24s;
+}
+
+.track-equalizer span:nth-child(4) {
+  height: 86%;
+  animation-delay: -.62s;
+}
+
+@keyframes track-equalizer-beat {
+  from { transform: scaleY(.38); }
+  to { transform: scaleY(1); }
+}
+
+.track-select:focus-visible .track-art-control .track-equalizer {
+  display: none;
+}
+
+.track-select:focus-visible .track-art-pause {
+  display: block;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .track-select:hover .track-art-control {
+    opacity: 1;
+  }
+
+  .track-select:hover .track-art-control .track-equalizer {
+    display: none;
+  }
+
+  .track-select:hover .track-art-pause {
+    display: block;
+  }
+}
+
+.track-copy {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 4px;
+}
+
+.track-title,
+.track-artist,
+.track-genre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track-title {
+  color: var(--ink, var(--text));
+  font-size: .96rem;
+  font-weight: 640;
+  line-height: 1.24;
+}
+
+.track[data-active="true"] .track-title {
+  color: var(--accent);
+}
+
+.track-artist,
+.track-genre,
+.track-time {
+  color: var(--muted);
+  font-size: .83rem;
+  line-height: 1.28;
+}
+
+.track-time {
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.track-list .track-favorite {
+  width: 44px;
+  height: 44px;
+  justify-self: center;
+  color: var(--muted);
+}
+
+.track-list .track-favorite[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+.track-favorite[aria-pressed="true"] .lucide-heart {
+  fill: currentColor;
+}
+
+.track-row-meter {
+  display: none;
+}
+
+.home-feed .track-list { margin-inline: -10px; }
+
+.home-feed .track-list .track {
+  gap: 0;
+  padding-inline: 10px 2px;
+  border-radius: 9px;
+}
+
+.home-feed .track-list .track[data-active="true"] {
+  border-color: rgba(var(--accent-rgb, 222, 202, 255), .29);
+  background: linear-gradient(
+    108deg,
+    rgba(var(--accent-rgb, 222, 202, 255), .29),
+    rgba(var(--accent-rgb, 222, 202, 255), .36) 47%,
+    rgba(var(--accent-rgb, 222, 202, 255), .20) 79%,
+    rgba(var(--accent-rgb, 222, 202, 255), .31)
+  );
+  box-shadow: inset 0 1px rgb(255 255 255 / 11%), 0 2px 14px rgb(8 2 20 / 20%);
+}
+
+.home-feed .track-list .track-select {
+  min-block-size: 44px;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(70px, 23%) 31px;
+  gap: 8px;
+  padding-block: 4px;
+}
+
+.home-feed .track-art,
+.home-feed .track-art .track-cover {
+  border-radius: 6px;
+}
+
+.home-feed .track .track-art-control {
+  opacity: 0;
+}
+
+.home-feed .track .track-art-control .track-equalizer {
+  display: none;
+}
+
+.home-feed .track .track-select:focus-visible .track-art-control {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-feed .track .track-select:hover .track-art-control {
+    opacity: 1;
+  }
+}
+
+.home-feed .track .track-copy {
+  grid-template-columns: minmax(0, max-content) max-content;
+  gap: 2px 7px;
+}
+
+.home-feed .track .track-title {
+  grid-column: 1;
+  color: var(--ink, var(--text));
+  font-size: .81rem;
+}
+
+.home-feed .track .track-artist {
+  grid-column: 1;
+  font-size: .71rem;
+}
+
+.home-feed .track .track-time {
+  font-size: .71rem;
+}
+
+.home-feed .track-genre { font-size: .68rem; }
+
+.home-feed .track-row-meter {
+  display: grid;
+  grid-area: 1 / 2 / span 2;
+  place-items: center;
+  color: var(--accent);
+}
+
+.home-feed .track-row-meter .track-equalizer {
+  height: 13px;
+}
+
+.home-feed .track-row-meter .track-equalizer span {
+  width: 2px;
+}
+
+.home-feed .track:not([data-playing="true"]) .track-row-meter .track-equalizer span {
+  animation: none;
+}
+
+.home-feed .track-favorite svg {
+  width: 15px;
+  height: 15px;
+}
+
+@media (max-width: 760px) {
+  .track-list .track-select {
+    grid-template-columns: 44px minmax(0, 1fr) 30px;
+  }
+
+  .track-list .track-genre {
+    display: none;
+  }
+
+  .track-list .track-title {
+    font-size: .91rem;
+  }
+
+  .home-feed .track .track-title {
+    font-size: .86rem;
+  }
+
+  .home-feed .track-list { margin-inline: -4px; }
+  .home-feed .track-list .track-select { grid-template-columns: 32px minmax(0, 1fr) 31px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-equalizer span {
+    animation: none;
+  }
+}
