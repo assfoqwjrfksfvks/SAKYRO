@@ -5,13 +5,7 @@ import {
   Heart,
   House,
   LibraryBig,
-  ListMusic,
-  Palette,
-  Pause,
-  Play,
   Search,
-  SkipBack,
-  SkipForward,
   Sparkles,
   UserRound,
   X,
@@ -20,7 +14,8 @@ import { useEffect, useEffectEvent, useRef, useState, type MouseEvent } from "re
 
 import { FavoritesScreen, LibraryScreen, SearchScreen } from "@/components/browse-screens";
 import { HomeDiscovery } from "@/components/home-discovery";
-import { Cover, TrackList } from "@/components/track-list";
+import { MiniPlayer } from "@/components/mini-player";
+import { TrackList } from "@/components/track-list";
 import { usePlayer } from "@/components/use-player";
 import { WavePlayer, type WavePreferences } from "@/components/wave-player";
 import type { DemoTrack } from "@/lib/catalog-data";
@@ -29,13 +24,17 @@ export type Screen = "home" | "search" | "favorites" | "library";
 export type Variant = "a" | "b";
 
 type Collection = "recent" | "favorites" | "new" | "for-you";
-type Player = ReturnType<typeof usePlayer>;
 
 const navigation = [
   { id: "home", title: "Главная", Icon: House },
   { id: "search", title: "Поиск", Icon: Search },
   { id: "favorites", title: "Любимое", Icon: Heart },
   { id: "library", title: "Медиатека", Icon: LibraryBig },
+] as const;
+
+const accents = [
+  { id: "a", label: "Лавандовый акцент" },
+  { id: "b", label: "Сиренево-синий акцент" },
 ] as const;
 
 const filters = [
@@ -87,49 +86,6 @@ function Brand() {
       </span>
       <span>SAKYRO<span className="brand-period">.</span></span>
     </>
-  );
-}
-
-function MiniPlayer({
-  player,
-  visible,
-  onOpenPlayer,
-  onOpenQueue,
-}: {
-  player: Player;
-  visible: boolean;
-  onOpenPlayer: () => void;
-  onOpenQueue: () => void;
-}) {
-  const track = player.activeTrack;
-  const progress = player.duration ? Math.min(100, player.elapsed / player.duration * 100) : 0;
-
-  return (
-    <div className="mini-dock" data-visible={visible} inert={!visible} aria-hidden={!visible}>
-      <section className="mini-player" aria-label="Мини-плеер">
-        <button className="mini-track" type="button" onClick={onOpenPlayer} aria-label="Открыть плеер">
-          {track ? <Cover track={track} size={44} /> : <AudioLines />}
-          <span className="mini-track-copy">
-            <strong>{track?.title ?? "SAKYRO"}</strong>
-            <span>{track?.artist ?? "Выберите трек"}</span>
-          </span>
-        </button>
-        <div className="mini-transport" aria-label="Управление воспроизведением">
-          <button className="icon-button" type="button" aria-label="Предыдущий трек" onClick={player.previous} disabled={!track}><SkipBack /></button>
-          <button className="icon-button mini-play" type="button" aria-label={player.playing ? "Пауза" : "Воспроизвести"} onClick={player.togglePlayback} disabled={!track}>
-            {player.playing ? <Pause /> : <Play />}
-          </button>
-          <button className="icon-button" type="button" aria-label="Следующий трек" onClick={player.next} disabled={!track}><SkipForward /></button>
-        </div>
-        <div className="mini-actions">
-          {track && (
-            <button type="button" className="icon-button mini-heart" aria-label={`В избранном: ${track.title}`} aria-pressed={player.favorites.includes(track.id)} onClick={() => player.toggleFavorite(track.id)}><Heart /></button>
-          )}
-          <button className="icon-button" type="button" aria-label="Открыть очередь" onClick={onOpenQueue}><ListMusic /></button>
-        </div>
-        <div className="mini-progress" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
-      </section>
-    </div>
   );
 }
 
@@ -259,8 +215,8 @@ export function Home({
     goTo(nextScreen);
   }
 
-  function switchVariant() {
-    const next = variant === "a" ? "b" : "a";
+  function switchVariant(next: Variant) {
+    if (next === variant) return;
     const url = new URL(window.location.href);
     if (next === "b") url.searchParams.set("variant", next);
     else url.searchParams.delete("variant");
@@ -377,7 +333,7 @@ export function Home({
   }
 
   return (
-    <div className="app-shell" data-variant={variant}>
+    <div className="app-shell" data-variant={variant} data-screen={screen} data-wave-top={screen === "home" && !belowFold}>
       <audio ref={player.audioRef} preload="metadata" />
       <header className="app-header">
         <div className="header-inner">
@@ -390,9 +346,11 @@ export function Home({
             ))}
           </nav>
           <div className="header-tools">
-            <button type="button" className="icon-button theme-toggle" aria-label="Переключить цветовой акцент" aria-pressed={variant === "b"} title={variant === "a" ? "Лавандовый акцент" : "Сиренево-синий акцент"} onClick={switchVariant}>
-              <Palette aria-hidden="true" />
-            </button>
+            <div className="accent-switch" role="group" aria-label="Цветовой акцент">
+              {accents.map(({ id, label }) => (
+                <button key={id} type="button" className="accent-swatch" data-swatch={id} aria-label={label} aria-pressed={variant === id} title={label} onClick={() => switchVariant(id)} />
+              ))}
+            </div>
             <div className="profile-anchor" ref={profileRef}>
               <button type="button" className="icon-button profile-toggle" aria-label="Профиль" aria-expanded={profileOpen} aria-controls="profile-card" ref={profileButton} onClick={() => setProfileOpen((open) => !open)}>
                 <UserRound aria-hidden="true" />
@@ -423,7 +381,7 @@ export function Home({
               onTune={tune}
             />
 
-            <section className="home-feed page-width" id="home-feed" ref={feedRef} tabIndex={-1} aria-label="Подборки и треки">
+            <section className="home-feed" id="home-feed" ref={feedRef} tabIndex={-1} aria-label="Подборки и треки">
               <div className="feed-filters" role="group" aria-label="Подборки">
                 {filters.map(({ id, title, Icon }) => (
                   <button type="button" key={id} aria-pressed={!genre && collection === id} aria-controls="home-collection" onClick={() => selectFilter(id)}>

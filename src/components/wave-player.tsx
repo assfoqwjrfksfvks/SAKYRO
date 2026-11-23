@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  AudioLines, ChevronDown, Heart, ListMusic, Pause, Play, Repeat, Shuffle,
+  AudioLines, Heart, ListMusic, Pause, Play, Repeat, Shuffle,
   SkipBack, SkipForward, SlidersHorizontal, ThumbsDown, Volume2, VolumeX,
 } from "lucide-react";
 import Image from "next/image";
@@ -233,8 +233,8 @@ export function WavePlayer({
 
       <div className="wave-player__edge">
         <button className="wave-player__browse" type="button" onClick={onBrowse}>
-          Подборки и треки
-          <ChevronDown aria-hidden="true" />
+          <span className="wave-player__grip" aria-hidden="true" />
+          <span>Подборки и треки <span aria-hidden="true">↓</span></span>
         </button>
       </div>
     </section>

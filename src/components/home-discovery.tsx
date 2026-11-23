@@ -7,10 +7,10 @@ import type { DemoTrack } from "@/lib/catalog-data";
 import "@/app/home-discovery.css";
 
 const mixes = [
-  { id: "slow", title: "Сбавить темп", genres: ["Лоу-фай", "Эмбиент", "Инструментальная", "Даунтемпо"] },
-  { id: "rhythm", title: "Поймать ритм", genres: ["Поп", "Фонк", "Электроника"] },
-  { id: "night", title: "Ночная поездка", genres: ["Даунтемпо", "Электроника", "Фонк"] },
-  { id: "light", title: "Светлый час", genres: ["Инструментальная", "Поп", "Лоу-фай"] },
+  { id: "slow", title: "Сбавить темп", cover: "/images/cover-1.webp", genres: ["Лоу-фай", "Эмбиент", "Инструментальная", "Даунтемпо"] },
+  { id: "rhythm", title: "Поймать ритм", cover: "/images/cover-7.webp", genres: ["Поп", "Фонк", "Электроника"] },
+  { id: "night", title: "Ночной фокус", cover: "/images/mix-night-focus.webp", genres: ["Даунтемпо", "Электроника", "Фонк"] },
+  { id: "light", title: "Тихий космос", cover: "/images/mix-quiet-space.webp", genres: ["Инструментальная", "Поп", "Лоу-фай"] },
 ];
 
 const featuredGenres = ["Поп", "Фонк", "Эмбиент", "Лоу-фай", "Электроника", "Инструментальная", "Даунтемпо"];
@@ -65,13 +65,13 @@ export function HomeDiscovery({
               aria-label={`${mixAction} «${mix.title}»`}
               onClick={() => activeMix && onTogglePlayback ? onTogglePlayback() : onPlayMix(firstTrack.id, ids)}
             >
-              <span className="home-mix__art">
-                <Image className="home-mix__cover" src={firstTrack.cover} width={320} height={320} alt="" unoptimized />
+              <Image className="home-mix__cover" src={mix.cover} width={320} height={320} alt="" unoptimized />
+              <span className="home-mix__caption">
+                <span className="home-mix__title">{mix.title}</span>
                 <span className="home-mix__play" aria-hidden="true">
                   {mixIsPlaying && onTogglePlayback ? <Pause /> : mixIsPlaying ? <AudioLines /> : <Play />}
                 </span>
               </span>
-              <span className="home-mix__title">{mix.title}</span>
             </button>
           );
         })}
@@ -88,7 +88,7 @@ export function HomeDiscovery({
               aria-pressed={name === selectedGenre}
               onClick={() => onSelectGenre(name)}
             >
-              {name}
+              <span className="home-genre-option__label">{name}</span>
             </button>
           ))}
         </div>

@@ -25,6 +25,10 @@ export function Cover({ track, size = 52 }: { track: DemoTrack; size?: number })
   );
 }
 
+function Equalizer() {
+  return <span className="track-equalizer" aria-hidden="true"><span /><span /><span /><span /></span>;
+}
+
 export function TrackList({ tracks, player, queueTracks = tracks, id }: {
   tracks: DemoTrack[];
   player: ReturnType<typeof usePlayer>;
@@ -53,7 +57,7 @@ export function TrackList({ tracks, player, queueTracks = tracks, id }: {
                 <span className="track-art-control" aria-hidden="true">
                   {currentAndPlaying ? (
                     <>
-                      <span className="track-equalizer"><span /><span /><span /><span /></span>
+                      <Equalizer />
                       <Pause className="track-art-pause" />
                     </>
                   ) : <Play />}
@@ -62,6 +66,7 @@ export function TrackList({ tracks, player, queueTracks = tracks, id }: {
               <span className="track-copy">
                 <span className="track-title">{track.title}</span>
                 <span className="track-artist">{track.artist}</span>
+                {active && <span className="track-row-meter" aria-hidden="true"><Equalizer /></span>}
               </span>
               <span className="track-genre">{track.genre}</span>
               <span className="track-time">{formatTime(track.duration)}</span>
