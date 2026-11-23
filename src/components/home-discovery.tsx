@@ -59,13 +59,11 @@ export function HomeDiscovery({
               aria-label={`Включить микс «${mix.title}»`}
               onClick={() => onPlayMix(firstTrack.id, ids)}
             >
-              <span className="home-mix__art" aria-hidden="true">
-                <Image className="home-mix__cover" src={firstTrack.cover} width={24} height={24} alt="" unoptimized />
-                <span className="home-mix__play">
-                  {mixIsPlaying ? <AudioLines /> : <Play />}
-                </span>
-              </span>
+              <Image className="home-mix__cover" src={firstTrack.cover} width={38} height={38} alt="" unoptimized />
               <span className="home-mix__title">{mix.title}</span>
+              <span className="home-mix__play" aria-hidden="true">
+                {mixIsPlaying ? <AudioLines /> : <Play />}
+              </span>
             </button>
           );
         })}

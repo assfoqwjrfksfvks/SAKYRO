@@ -11,7 +11,8 @@
     "build": "next build",
     "start": "next start",
     "check": "next typegen && tsc --noEmit",
-    "test": "node --test test/catalog.test.ts"
+    "test": "node --test test/catalog.test.ts",
+    "package:windows": "bash scripts/package-windows.sh"
   },
   "dependencies": {
     "@fontsource-variable/golos-text": "5.3.0",

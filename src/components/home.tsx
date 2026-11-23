@@ -13,6 +13,7 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Sparkles,
   Volume2,
   X,
 } from "lucide-react";
@@ -30,7 +31,7 @@ type TrackView = Collection | { genre: string };
 type Panel = "search" | "library" | "queue" | "player";
 type Player = ReturnType<typeof usePlayer>;
 
-const recentPreviewSize = 3;
+const recentPreviewSize = 6;
 
 const collectionTitles: Record<Collection, string> = {
   recent: "Недавние треки",
@@ -255,6 +256,7 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
   const dialog = useRef<HTMLDialogElement>(null);
   const closePanelButton = useRef<HTMLButtonElement>(null);
   const searchField = useRef<HTMLInputElement>(null);
+  const feed = useRef<HTMLElement>(null);
   const list = useRef<HTMLElement>(null);
   const player = usePlayer(tracks);
   const { audioRef, favorites, recentIds, queue, error, playing, playWave, togglePlayback } = player;
@@ -318,6 +320,15 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
   function openPanel(nextPanel: Panel) {
     if (nextPanel === "search") setQuery("");
     setPanel(nextPanel);
+  }
+
+  function browseFeed() {
+    const section = feed.current;
+    if (!section) return;
+
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    section.focus({ preventScroll: true });
+    section.scrollIntoView({ block: "start", behavior });
   }
 
   const waveFinished = !playing && player.duration > 0 && player.elapsed >= player.duration;
@@ -390,33 +401,35 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
           </section>
         </div>
 
-        <section className="home-discovery" id="home-discovery" aria-labelledby="home-discovery-heading">
-          <div className="home-discovery__toolbar">
-            <div className="home-quick-actions" role="group" aria-label="Быстрые подборки">
-              <button type="button" aria-controls="home-collection" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites", true)}>
-                Любимое
-              </button>
-              <button type="button" aria-controls="home-collection" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new", true)}>
-                Новое
-              </button>
-              <button type="button" aria-controls="home-collection" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you", true)}>
-                Для тебя
-              </button>
-            </div>
+        <section className="home-feed" id="home-feed" ref={feed} tabIndex={-1} aria-label="Подборки и треки">
+          <button type="button" className="home-feed__handle" aria-controls="home-feed" onClick={browseFeed}>
+            <span className="home-feed__grip" aria-hidden="true" />
+            <span>Подборки и треки</span>
+          </button>
+          <div className="home-quick-actions" role="group" aria-label="Быстрые подборки">
+            <button type="button" aria-controls="home-collection" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites", true)}>
+              <Heart aria-hidden="true" /><span>Любимое</span>
+            </button>
+            <button type="button" aria-controls="home-collection" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new", true)}>
+              <Sparkles aria-hidden="true" /><span>Новое</span>
+            </button>
+            <button type="button" aria-controls="home-collection" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you", true)}>
+              <AudioLines aria-hidden="true" /><span>Для тебя</span>
+            </button>
           </div>
-          <h2 className="home-discovery__heading" id="home-discovery-heading">Миксы и жанры</h2>
-          <HomeDiscovery
-            tracks={tracks}
-            activeTrackId={player.activeTrack?.id}
-            playing={playing}
-            queue={queue}
-            onPlayMix={trackPlayer.playTrack}
-            selectedGenre={selectedGenre}
-            onSelectGenre={(genre) => showCollection({ genre }, true)}
-          />
-        </section>
+          <section className="home-discovery" id="home-discovery" aria-labelledby="home-discovery-heading">
+            <h2 className="home-discovery__heading" id="home-discovery-heading">Миксы и жанры</h2>
+            <HomeDiscovery
+              tracks={tracks}
+              activeTrackId={player.activeTrack?.id}
+              playing={playing}
+              queue={queue}
+              onPlayMix={trackPlayer.playTrack}
+              selectedGenre={selectedGenre}
+              onSelectGenre={(genre) => showCollection({ genre }, true)}
+            />
+          </section>
 
-        <section className="home-feed" id="home-feed" aria-label="Треки">
           <section className="collection" id="home-collection" ref={list} tabIndex={-1} aria-labelledby="collection-heading">
             <header className="collection-header">
               <h2 id="collection-heading">{collectionTitle}</h2>
@@ -428,7 +441,7 @@ export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialV
                 <button type="button" className="collection-expand" aria-controls="home-collection-tracks" aria-expanded={showAllRecent} title={showAllRecent ? undefined : recentTracks.length ? "Вся история" : "Все демотреки"} onClick={() => setShowAllRecent((value) => !value)}>
                   {showAllRecent ? "Свернуть" : "Ещё"}
                 </button>
-              ) : collection === "recent" && <span>{recentTracks.length ? "История" : "Демокаталог"}</span>}
+              ) : null}
               {collection === "for-you" && <span>{preferredGenres.size ? "По вашим жанрам" : "Стартовая подборка"}</span>}
             </header>
             {displayedTracks.length > 0

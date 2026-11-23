@@ -1,26 +1,13 @@
 .home-wave {
   --wave-art: url("/images/resonance.webp");
-  --wave-art-size: clamp(213px, min(32vw, 36svh), 348px);
+  --wave-art-size: clamp(244px, min(43vw, 46svh), 425px);
   position: relative;
-  isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: "content art";
-  align-items: center;
-  column-gap: clamp(19px, 4vw, 58px);
-  overflow: clip;
-  padding-block: 2px clamp(12px, 2.2svh, 21px);
-}
-
-.home-wave::before {
-  position: absolute;
-  z-index: -1;
-  inset: 0 -4%;
-  background:
-    radial-gradient(ellipse 43% 76% at 71% 44%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 85%),
-    radial-gradient(ellipse 36% 57% at 29% 53%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 87%);
-  pointer-events: none;
-  content: "";
+  min-block-size: 0;
+  flex: 1;
+  align-content: center;
+  justify-items: center;
+  padding-block: 5px clamp(15px, 3svh, 28px);
 }
 
 .home-wave__art {
@@ -28,8 +15,7 @@
   display: block;
   inline-size: min(100%, var(--wave-art-size));
   aspect-ratio: 1;
-  grid-area: art;
-  justify-self: center;
+  margin-block-end: -13px;
   pointer-events: none;
 }
 
@@ -40,11 +26,10 @@
 }
 
 .home-wave__art::before {
-  inset: -9% -14% -3%;
+  inset: -6% -12% -3%;
   background:
-    radial-gradient(ellipse 31% 7% at 51% 87%, rgb(0 0 0 / 32%), transparent 100%),
-    radial-gradient(ellipse 45% 13% at 51% 84%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 96%),
-    radial-gradient(ellipse 53% 52% at 54% 46%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 91%);
+    radial-gradient(ellipse 38% 10% at 50% 86%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 100%),
+    radial-gradient(ellipse 50% 50% at 50% 45%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 94%);
 }
 
 .home-wave__art::after {
@@ -58,11 +43,9 @@
   position: relative;
   display: grid;
   min-inline-size: 0;
-  grid-area: content;
-  justify-items: start;
-  justify-self: center;
+  justify-items: center;
   gap: clamp(17px, 2.7svh, 25px);
-  text-align: start;
+  text-align: center;
 }
 
 .home-wave__title {
@@ -139,16 +122,22 @@
 
 [data-variant="b"] .home-wave {
   --wave-art: url("/images/echo.webp");
-  grid-template-areas: "art content";
+  --wave-art-size: clamp(240px, min(39vw, 57svh), 440px);
+  grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr);
+  align-items: center;
+  justify-items: stretch;
+  column-gap: clamp(22px, 5vw, 74px);
   padding-inline: clamp(0px, 2.5vw, 36px);
 }
 
-[data-variant="b"] .home-wave::before {
-  transform: scaleX(-1);
+[data-variant="b"] .home-wave__art {
+  justify-self: end;
+  margin-block-end: 0;
 }
 
 [data-variant="b"] .home-wave__content {
-  justify-self: start;
+  justify-items: start;
+  text-align: start;
 }
 
 [data-variant="b"] .home-wave__title {
@@ -179,43 +168,32 @@
 @media (max-width: 760px) {
   .home-wave,
   [data-variant="b"] .home-wave {
-    --wave-art-size: clamp(165px, min(54vw, 27svh), 215px);
+    --wave-art-size: clamp(215px, min(74vw, 38svh), 298px);
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "art" "content";
     justify-items: center;
-    padding: 0 4px 10px;
-  }
-
-  .home-wave::before,
-  [data-variant="b"] .home-wave::before {
-    inset: 0;
-    transform: none;
-    background:
-      radial-gradient(ellipse 56% 56% at 50% 35%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 92%),
-      radial-gradient(ellipse 65% 40% at 50% 80%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 85%);
+    padding-inline: 0;
   }
 
   .home-wave__art,
   [data-variant="b"] .home-wave__art {
     justify-self: center;
-    margin-block-end: -7px;
+    margin-block-end: -8px;
   }
 
   .home-wave__content,
   [data-variant="b"] .home-wave__content {
     justify-items: center;
-    justify-self: center;
-    gap: 13px;
+    gap: 18px;
     text-align: center;
   }
 
   .home-wave__title,
   [data-variant="b"] .home-wave__title {
-    font-size: clamp(2.35rem, 12vw, 3.55rem);
+    font-size: clamp(2.45rem, 12.8vw, 3.7rem);
   }
 
   .home-wave__play {
-    min-block-size: 48px;
+    min-block-size: 50px;
     font-size: .93rem;
   }
 
@@ -227,43 +205,18 @@
 @media (max-width: 760px) and (max-height: 620px) {
   .home-wave,
   [data-variant="b"] .home-wave {
-    --wave-art-size: clamp(99px, min(39vw, 25svh), 145px);
-    grid-template-columns: minmax(0, var(--wave-art-size)) minmax(0, 1fr);
-    grid-template-areas: "art content";
-    column-gap: clamp(8px, 2vw, 18px);
-    inline-size: min(100%, 520px);
-    align-self: center;
-    padding-block: 2px 12px;
-  }
-
-  .home-wave__art,
-  [data-variant="b"] .home-wave__art {
-    margin: 0;
+    --wave-art-size: clamp(168px, min(66vw, 34svh), 208px);
+    padding-block: 0 10px;
   }
 
   .home-wave__content,
   [data-variant="b"] .home-wave__content {
-    justify-items: start;
-    justify-self: center;
-    gap: 9px;
-    text-align: start;
+    gap: 13px;
   }
 
   .home-wave__title,
   [data-variant="b"] .home-wave__title {
-    font-size: clamp(1.83rem, 7.6vw, 3rem);
-  }
-
-  .home-wave__play {
-    min-block-size: 44px;
-    min-inline-size: 0;
-    gap: 6px;
-    padding: 4px 9px 4px 4px;
-    font-size: .84rem;
-  }
-
-  .home-wave__play-icon {
-    inline-size: 30px;
+    font-size: clamp(2.1rem, 12vw, 3rem);
   }
 }
 
@@ -274,7 +227,7 @@
   }
 
   [data-variant="b"] .home-wave {
-    --wave-art-size: clamp(152px, 33svh, 224px);
+    --wave-art-size: clamp(170px, 47svh, 312px);
   }
 
   .home-wave__content {
@@ -291,7 +244,6 @@
   [data-variant="b"] .home-wave {
     --wave-art-size: clamp(98px, 34svh, 158px);
     grid-template-columns: minmax(0, var(--wave-art-size)) minmax(0, 1fr);
-    grid-template-areas: "art content";
     align-items: center;
     column-gap: clamp(10px, 3vw, 28px);
     inline-size: min(100%, 490px);
