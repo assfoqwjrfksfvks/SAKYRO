@@ -1,17 +1,19 @@
 "use client";
 
-import { AudioLines, Play } from "lucide-react";
+import { AudioLines, Pause, Play } from "lucide-react";
 import Image from "next/image";
 
 import type { DemoTrack } from "@/lib/catalog-data";
 import "@/app/home-discovery.css";
 
 const mixes = [
-  { id: "slow", title: "Сбавить темп", genres: ["Эмбиент", "Лоу-фай", "Инструментальная", "Даунтемпо"] },
+  { id: "slow", title: "Сбавить темп", genres: ["Лоу-фай", "Эмбиент", "Инструментальная", "Даунтемпо"] },
   { id: "rhythm", title: "Поймать ритм", genres: ["Поп", "Фонк", "Электроника"] },
+  { id: "night", title: "Ночная поездка", genres: ["Даунтемпо", "Электроника", "Фонк"] },
+  { id: "light", title: "Светлый час", genres: ["Инструментальная", "Поп", "Лоу-фай"] },
 ];
 
-const featuredGenres = ["Поп", "Фонк"];
+const featuredGenres = ["Поп", "Фонк", "Эмбиент", "Лоу-фай", "Электроника", "Инструментальная", "Даунтемпо"];
 
 export function HomeDiscovery({
   tracks,
@@ -19,6 +21,7 @@ export function HomeDiscovery({
   playing,
   queue,
   onPlayMix,
+  onTogglePlayback,
   selectedGenre,
   onSelectGenre,
 }: {
@@ -27,6 +30,7 @@ export function HomeDiscovery({
   playing: boolean;
   queue: DemoTrack[];
   onPlayMix: (id: string, trackIds: readonly string[]) => void;
+  onTogglePlayback?: () => void;
   selectedGenre?: string;
   onSelectGenre: (genre: string) => void;
 }) {
@@ -46,8 +50,10 @@ export function HomeDiscovery({
           if (!firstTrack) return null;
 
           const ids = mixTracks.map((track) => track.id);
-          const mixIsPlaying = playing && activeTrackId !== undefined && ids.includes(activeTrackId)
+          const activeMix = activeTrackId !== undefined && ids.includes(activeTrackId)
             && ids.length === queuedIds.size && ids.every((id) => queuedIds.has(id));
+          const mixIsPlaying = playing && activeMix;
+          const mixAction = mixIsPlaying && onTogglePlayback ? "Поставить на паузу микс" : "Включить микс";
 
           return (
             <button
@@ -56,14 +62,16 @@ export function HomeDiscovery({
               className="home-mix"
               data-mix={mix.id}
               data-playing={mixIsPlaying}
-              aria-label={`Включить микс «${mix.title}»`}
-              onClick={() => onPlayMix(firstTrack.id, ids)}
+              aria-label={`${mixAction} «${mix.title}»`}
+              onClick={() => activeMix && onTogglePlayback ? onTogglePlayback() : onPlayMix(firstTrack.id, ids)}
             >
-              <Image className="home-mix__cover" src={firstTrack.cover} width={38} height={38} alt="" unoptimized />
-              <span className="home-mix__title">{mix.title}</span>
-              <span className="home-mix__play" aria-hidden="true">
-                {mixIsPlaying ? <AudioLines /> : <Play />}
+              <span className="home-mix__art">
+                <Image className="home-mix__cover" src={firstTrack.cover} width={320} height={320} alt="" unoptimized />
+                <span className="home-mix__play" aria-hidden="true">
+                  {mixIsPlaying && onTogglePlayback ? <Pause /> : mixIsPlaying ? <AudioLines /> : <Play />}
+                </span>
               </span>
+              <span className="home-mix__title">{mix.title}</span>
             </button>
           );
         })}

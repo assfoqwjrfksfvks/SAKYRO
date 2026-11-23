@@ -10,9 +10,11 @@ const historyLimit = 50;
 type PlayerPreferences = {
   favorites: string[];
   recentIds: string[];
+  dislikedIds: string[];
+  playCounts: Record<string, number>;
 };
 
-const emptyPreferences: PlayerPreferences = { favorites: [], recentIds: [] };
+const emptyPreferences: PlayerPreferences = { favorites: [], recentIds: [], dislikedIds: [], playCounts: {} };
 const preferenceListeners = new Set<() => void>();
 let memoryPreferences: string | undefined;
 
@@ -50,7 +52,12 @@ function readPreferences(snapshot: string): PlayerPreferences {
 
   try {
     const stored = JSON.parse(snapshot) as Partial<PlayerPreferences> | null;
-    return { favorites: stringIds(stored?.favorites), recentIds: stringIds(stored?.recentIds) };
+    return {
+      favorites: stringIds(stored?.favorites),
+      recentIds: stringIds(stored?.recentIds),
+      dislikedIds: stringIds(stored?.dislikedIds),
+      playCounts: Object.fromEntries(Object.entries(stored?.playCounts ?? {}).filter(([, count]) => Number.isSafeInteger(count) && count > 0)),
+    };
   } catch {
     return emptyPreferences;
   }
@@ -89,7 +96,7 @@ type PlaybackQueue = {
 export function usePlayer(tracks: DemoTrack[]) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const initialTrack = useRef(tracks[0]);
-  const playback = useRef({ trackId: tracks[0]?.id, source: "", request: 0 });
+  const playback = useRef({ trackId: tracks[0]?.id, source: "", request: 0, counted: false });
   const [activeId, setActiveId] = useState(tracks[0]?.id);
   const [playing, setPlaying] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -109,7 +116,7 @@ export function usePlayer(tracks: DemoTrack[]) {
     return track ? [track] : [];
   });
   const preferences = useSyncExternalStore(subscribeToPreferences, getPreferenceSnapshot, getServerPreferenceSnapshot);
-  const { favorites, recentIds } = readPreferences(preferences);
+  const { favorites, recentIds, dislikedIds, playCounts } = readPreferences(preferences);
 
   function loadTrack(track: DemoTrack, audio: HTMLAudioElement) {
     const source = new URL(track.audio, document.baseURI).href;
@@ -118,6 +125,7 @@ export function usePlayer(tracks: DemoTrack[]) {
     playback.current.request++;
     playback.current.trackId = track.id;
     playback.current.source = source;
+    playback.current.counted = false;
     audio.pause();
     audio.src = source;
     setActiveId(track.id);
@@ -171,13 +179,19 @@ export function usePlayer(tracks: DemoTrack[]) {
     startTrack(id);
   }
 
-  function playWave(ids: readonly string[]) {
-    const trackIds = validTrackIds(ids);
-    if (trackIds.length === 0) return;
+  function setWaveQueue(ids: readonly string[]) {
+    const currentId = playback.current.trackId;
+    const remainingIds = validTrackIds(ids).filter((id) => id !== currentId);
+    const trackIds = currentId ? [currentId, ...remainingIds] : remainingIds;
 
-    const orderedIds = playbackQueue.shuffle ? shuffleIds(trackIds) : trackIds;
-    setPlaybackQueue({ ...playbackQueue, trackIds, orderedIds });
-    startTrack(orderedIds[0]);
+    setPlaybackQueue((current) => {
+      if (!current.shuffle || !currentId) return { ...current, trackIds, orderedIds: trackIds };
+      return {
+        ...current,
+        trackIds,
+        orderedIds: [currentId, ...shuffleIds(remainingIds)],
+      };
+    });
   }
 
   function togglePlayback() {
@@ -239,6 +253,18 @@ export function usePlayer(tracks: DemoTrack[]) {
       favorites: current.favorites.includes(id)
         ? current.favorites.filter((favoriteId) => favoriteId !== id)
         : [...current.favorites, id],
+      dislikedIds: current.dislikedIds.filter((dislikedId) => dislikedId !== id),
+    }));
+  }
+
+  function toggleDislike(id: string) {
+    if (!tracksById.has(id)) return;
+    updatePreferences((current) => ({
+      ...current,
+      dislikedIds: current.dislikedIds.includes(id)
+        ? current.dislikedIds.filter((dislikedId) => dislikedId !== id)
+        : [...current.dislikedIds, id],
+      favorites: current.favorites.filter((favoriteId) => favoriteId !== id),
     }));
   }
 
@@ -279,9 +305,12 @@ export function usePlayer(tracks: DemoTrack[]) {
       if (!id || audio.paused || audio.ended || !isCurrentSource()) return;
 
       setPlaying(true);
+      const countPlay = !current.counted;
+      current.counted = true;
       updatePreferences((preferences) => ({
         ...preferences,
         recentIds: [id, ...preferences.recentIds.filter((recentId) => recentId !== id)].slice(0, historyLimit),
+        playCounts: countPlay ? { ...preferences.playCounts, [id]: (preferences.playCounts[id] ?? 0) + 1 } : preferences.playCounts,
       }));
     };
 
@@ -343,18 +372,21 @@ export function usePlayer(tracks: DemoTrack[]) {
     volume,
     favorites,
     recentIds,
+    dislikedIds,
+    playCounts,
     queue,
     shuffle: playbackQueue.shuffle,
     repeat,
     error,
     playTrack,
-    playWave,
+    setWaveQueue,
     togglePlayback,
     previous,
     next,
     seek,
     setVolume,
     toggleFavorite,
+    toggleDislike,
     toggleShuffle,
     toggleRepeat,
   };

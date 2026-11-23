@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SAKYRO — Моя волна",
-  description: "Слушайте демокаталог SAKYRO и выберите оформление главного экрана.",
+  description: "Моя волна, музыкальные подборки и ваша медиатека.",
 };
 
 export const viewport: Viewport = {

@@ -6,32 +6,43 @@ import {
   House,
   LibraryBig,
   ListMusic,
+  Palette,
   Pause,
   Play,
-  Repeat,
   Search,
-  Shuffle,
   SkipBack,
   SkipForward,
   Sparkles,
-  Volume2,
+  UserRound,
   X,
 } from "lucide-react";
-import Image from "next/image";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type MouseEvent } from "react";
 
+import { FavoritesScreen, LibraryScreen, SearchScreen } from "@/components/browse-screens";
 import { HomeDiscovery } from "@/components/home-discovery";
+import { Cover, TrackList } from "@/components/track-list";
 import { usePlayer } from "@/components/use-player";
+import { WavePlayer, type WavePreferences } from "@/components/wave-player";
 import type { DemoTrack } from "@/lib/catalog-data";
-import "@/app/home-wave.css";
 
-type Variant = "a" | "b";
+export type Screen = "home" | "search" | "favorites" | "library";
+export type Variant = "a" | "b";
+
 type Collection = "recent" | "favorites" | "new" | "for-you";
-type TrackView = Collection | { genre: string };
-type Panel = "search" | "library" | "queue" | "player";
 type Player = ReturnType<typeof usePlayer>;
 
-const recentPreviewSize = 6;
+const navigation = [
+  { id: "home", title: "Главная", Icon: House },
+  { id: "search", title: "Поиск", Icon: Search },
+  { id: "favorites", title: "Любимое", Icon: Heart },
+  { id: "library", title: "Медиатека", Icon: LibraryBig },
+] as const;
+
+const filters = [
+  { id: "favorites", title: "Любимое", Icon: Heart },
+  { id: "new", title: "Новое", Icon: Sparkles },
+  { id: "for-you", title: "Для тебя", Icon: AudioLines },
+] as const;
 
 const collectionTitles: Record<Collection, string> = {
   recent: "Недавние треки",
@@ -40,482 +51,440 @@ const collectionTitles: Record<Collection, string> = {
   "for-you": "Для тебя",
 };
 
-const panelTitles: Record<Panel, string> = {
-  search: "Поиск",
-  library: "Медиатека",
-  queue: "Очередь",
-  player: "Сейчас играет",
+const moodGenres: Record<string, readonly string[]> = {
+  "Спокойная": ["Эмбиент", "Лоу-фай", "Инструментальная"],
+  "Бодрая": ["Поп", "Электроника", "Фонк"],
+  "Ночная": ["Фонк", "Даунтемпо", "Эмбиент"],
+  "Фокус": ["Инструментальная", "Лоу-фай", "Даунтемпо"],
 };
 
-function formatTime(seconds: number) {
-  const wholeSeconds = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
-  return `${Math.floor(wholeSeconds / 60)}:${String(wholeSeconds % 60).padStart(2, "0")}`;
+const emptyWave: WavePreferences = { mood: null, character: null, vocal: null };
+const previewSize = 6;
+const seekStep = 5;
+
+function readScreen(value: unknown): Screen {
+  return value === "search" || value === "favorites" || value === "library" ? value : "home";
 }
 
-function Cover({ track, size = 52 }: { track: DemoTrack; size?: number }) {
-  return (
-    <Image
-      className="track-cover"
-      src={track.cover}
-      width={size}
-      height={size}
-      alt=""
-      unoptimized
-    />
-  );
+function screenHref(screen: Screen, variant: Variant, query = "") {
+  const params = new URLSearchParams();
+  if (screen !== "home") params.set("tab", screen);
+  if (screen === "search" && query) params.set("q", query);
+  if (variant === "b") params.set("variant", variant);
+  const search = params.toString();
+
+  return search ? `/?${search}` : "/";
 }
 
 function Brand() {
   return (
-    <div className="brand" aria-label="SAKYRO">
+    <>
       <span className="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 32 32" fill="none">
           <path d="M6.5 19.5 13 9l4.1 13L24 12.5" />
           <circle cx="25.5" cy="9.5" r="1.2" />
         </svg>
       </span>
-      <span>SAKYRO<span className="brand-period" aria-hidden="true">.</span></span>
-    </div>
+      <span>SAKYRO<span className="brand-period">.</span></span>
+    </>
   );
 }
 
-function TrackList({ tracks, player, queueTracks = tracks, id }: {
-  tracks: DemoTrack[];
+function MiniPlayer({
+  player,
+  visible,
+  onOpenPlayer,
+  onOpenQueue,
+}: {
   player: Player;
-  queueTracks?: DemoTrack[];
-  id?: string;
+  visible: boolean;
+  onOpenPlayer: () => void;
+  onOpenQueue: () => void;
 }) {
-  const { activeTrack, playing, favorites, playTrack, toggleFavorite, togglePlayback } = player;
-
-  return (
-    <ul className="track-list" id={id}>
-      {tracks.map((track) => {
-        const active = track.id === activeTrack?.id;
-        const currentAndPlaying = active && playing;
-        const favorite = favorites.includes(track.id);
-
-        return (
-          <li className="track" key={track.id} data-active={active} data-playing={currentAndPlaying}>
-            <button
-              className="track-select"
-              type="button"
-              aria-label={`${currentAndPlaying ? "Поставить на паузу" : "Слушать"}: ${track.title}`}
-              onClick={() => active ? togglePlayback() : playTrack(track.id, queueTracks.map(({ id }) => id))}
-            >
-              <span className="track-art">
-                <Cover track={track} />
-                <span className="track-art-control" aria-hidden="true">
-                  {currentAndPlaying ? <Pause /> : <Play />}
-                </span>
-              </span>
-              <span className="track-copy">
-                <span className="track-title">{track.title}</span>
-                <span className="track-artist">{track.artist}</span>
-              </span>
-              <span className="track-genre">{track.genre}</span>
-              <span className="track-time">{formatTime(track.duration)}</span>
-            </button>
-            <button
-              type="button"
-              className="icon-button track-favorite"
-              aria-label={`В избранном: ${track.title}`}
-              aria-pressed={favorite}
-              onClick={() => toggleFavorite(track.id)}
-            >
-              <Heart />
-            </button>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function Transport({ player }: { player: Player }) {
-  return (
-    <div className="transport" aria-label="Управление воспроизведением">
-      <button className="icon-button transport-extra" type="button" aria-label="Перемешать очередь" aria-pressed={player.shuffle} onClick={player.toggleShuffle}>
-        <Shuffle />
-      </button>
-      <button className="icon-button transport-skip transport-previous" type="button" aria-label="Предыдущий трек" onClick={player.previous}>
-        <SkipBack />
-      </button>
-      <button
-        type="button"
-        className="icon-button transport-play"
-        aria-label={player.playing ? "Пауза" : "Воспроизвести"}
-        onClick={player.togglePlayback}
-      >
-        {player.playing ? <Pause /> : <Play />}
-      </button>
-      <button className="icon-button transport-skip" type="button" aria-label="Следующий трек" onClick={player.next}>
-        <SkipForward />
-      </button>
-      <button className="icon-button transport-extra" type="button" aria-label="Повторить трек" aria-pressed={player.repeat} onClick={player.toggleRepeat}>
-        <Repeat />
-      </button>
-    </div>
-  );
-}
-
-function Timeline({ player }: { player: Player }) {
-  const duration = player.duration || player.activeTrack?.duration || 0;
-  const progress = duration ? Math.min(100, player.elapsed / duration * 100) : 0;
-
-  return (
-    <div className="timeline">
-      <span>{formatTime(player.elapsed)}</span>
-      <input
-        type="range"
-        className="player-range"
-        aria-label="Позиция воспроизведения"
-        aria-valuetext={`${formatTime(player.elapsed)} из ${formatTime(duration)}`}
-        min={0}
-        max={duration || 1}
-        step={0.1}
-        value={Math.min(player.elapsed, duration)}
-        style={{ "--range-value": `${progress}%` } as CSSProperties}
-        disabled={!duration}
-        onChange={(event) => player.seek(event.currentTarget.valueAsNumber)}
-      />
-      <span>{formatTime(duration)}</span>
-    </div>
-  );
-}
-
-function Volume({ player }: { player: Player }) {
-  return (
-    <div className="volume">
-      <Volume2 aria-hidden="true" />
-      <input
-        aria-label="Громкость"
-        className="player-range"
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={player.volume}
-        style={{ "--range-value": `${player.volume * 100}%` } as CSSProperties}
-        onChange={(event) => player.setVolume(event.currentTarget.valueAsNumber)}
-      />
-    </div>
-  );
-}
-
-function PlayerBar({ player, onPanel }: { player: Player; onPanel: (panel: Panel) => void }) {
   const track = player.activeTrack;
   const progress = player.duration ? Math.min(100, player.elapsed / player.duration * 100) : 0;
-  const favorite = track ? player.favorites.includes(track.id) : false;
 
   return (
-    <section className="player-bar" aria-label="Мини-плеер">
-      <div className="mobile-progress" aria-hidden="true">
-        <span style={{ width: `${progress}%` }} />
-      </div>
-      <div className="player-track">
-        <button className="player-track-button" type="button" onClick={() => onPanel("player")} aria-label="Открыть плеер">
-          {track ? <Cover track={track} size={48} /> : <span className="player-empty-art"><AudioLines /></span>}
-          <span className="track-copy">
-            <span className="track-title">{track?.title ?? "SAKYRO"}</span>
-            <span className="track-artist">{track?.artist ?? "Выберите трек"}</span>
+    <div className="mini-dock" data-visible={visible} inert={!visible} aria-hidden={!visible}>
+      <section className="mini-player" aria-label="Мини-плеер">
+        <button className="mini-track" type="button" onClick={onOpenPlayer} aria-label="Открыть плеер">
+          {track ? <Cover track={track} size={44} /> : <AudioLines />}
+          <span className="mini-track-copy">
+            <strong>{track?.title ?? "SAKYRO"}</strong>
+            <span>{track?.artist ?? "Выберите трек"}</span>
           </span>
         </button>
-        {track && (
-          <button
-            className="icon-button player-favorite"
-            type="button"
-            aria-label={`В избранном: ${track.title}`}
-            aria-pressed={favorite}
-            onClick={() => player.toggleFavorite(track.id)}
-          >
-            <Heart />
+        <div className="mini-transport" aria-label="Управление воспроизведением">
+          <button className="icon-button" type="button" aria-label="Предыдущий трек" onClick={player.previous} disabled={!track}><SkipBack /></button>
+          <button className="icon-button mini-play" type="button" aria-label={player.playing ? "Пауза" : "Воспроизвести"} onClick={player.togglePlayback} disabled={!track}>
+            {player.playing ? <Pause /> : <Play />}
           </button>
-        )}
-      </div>
-      <div className="player-center">
-        <Transport player={player} />
-        <Timeline player={player} />
-      </div>
-      <div className="player-tools">
-        <button className="icon-button queue-button" type="button" aria-label="Открыть очередь" onClick={() => onPanel("queue")}>
-          <ListMusic />
-        </button>
-        <Volume player={player} />
-      </div>
-    </section>
+          <button className="icon-button" type="button" aria-label="Следующий трек" onClick={player.next} disabled={!track}><SkipForward /></button>
+        </div>
+        <div className="mini-actions">
+          {track && (
+            <button type="button" className="icon-button mini-heart" aria-label={`В избранном: ${track.title}`} aria-pressed={player.favorites.includes(track.id)} onClick={() => player.toggleFavorite(track.id)}><Heart /></button>
+          )}
+          <button className="icon-button" type="button" aria-label="Открыть очередь" onClick={onOpenQueue}><ListMusic /></button>
+        </div>
+        <div className="mini-progress" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
+      </section>
+    </div>
   );
 }
 
-export function Home({ tracks, initialVariant }: { tracks: DemoTrack[]; initialVariant: Variant }) {
+export function Home({
+  tracks,
+  initialVariant,
+  initialScreen,
+  initialQuery,
+}: {
+  tracks: DemoTrack[];
+  initialVariant: Variant;
+  initialScreen: Screen;
+  initialQuery: string;
+}) {
+  const [screen, setScreen] = useState(initialScreen);
   const [variant, setVariant] = useState(initialVariant);
-  const [collection, setCollection] = useState<TrackView>("recent");
-  const [showAllRecent, setShowAllRecent] = useState(false);
-  const [panel, setPanel] = useState<Panel | null>(null);
-  const [query, setQuery] = useState("");
-  const [waveActive, setWaveActive] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const closePanelButton = useRef<HTMLButtonElement>(null);
-  const searchField = useRef<HTMLInputElement>(null);
-  const feed = useRef<HTMLElement>(null);
-  const list = useRef<HTMLElement>(null);
+  const [searchRequest, setSearchRequest] = useState({ query: initialQuery, revision: 0 });
+  const [collection, setCollection] = useState<Collection>("recent");
+  const [genre, setGenre] = useState<string>();
+  const [showAll, setShowAll] = useState(false);
+  const [belowFold, setBelowFold] = useState(false);
+  const [preferences, setPreferences] = useState(emptyWave);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const feedRef = useRef<HTMLElement>(null);
+  const listRef = useRef<HTMLElement>(null);
+  const queueDialog = useRef<HTMLDialogElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const profileButton = useRef<HTMLButtonElement>(null);
+  const waveMode = useRef(true);
+  const waveStarted = useRef(false);
   const player = usePlayer(tracks);
-  const { audioRef, favorites, recentIds, queue, error, playing, playWave, togglePlayback } = player;
-
-  useEffect(() => {
-    const element = dialog.current;
-    if (!element) return;
-    if (panel && !element.open) element.showModal();
-    if (!panel && element.open) element.close();
-    if (panel === "search") searchField.current?.focus();
-    else if (panel) closePanelButton.current?.focus();
-  }, [panel]);
+  const { activeTrack, favorites, recentIds, dislikedIds, playCounts } = player;
 
   const favoriteTracks = tracks.filter(({ id }) => favorites.includes(id));
-  const recentTracks = recentIds
-    .map((id) => tracks.find((track) => track.id === id))
-    .filter((track): track is DemoTrack => Boolean(track));
-  const preferredGenres = new Set(favoriteTracks.concat(recentTracks.slice(0, 3)).map(({ genre }) => genre));
-  const selectedTracks = [...tracks].sort((first, second) => {
-    const score = (track: DemoTrack) => Number(preferredGenres.has(track.genre)) * 2 - Number(recentIds.includes(track.id));
-    return score(second) - score(first);
+  const recentTracks = recentIds.flatMap((id) => {
+    const track = tracks.find((item) => item.id === id);
+    return track ? [track] : [];
   });
-  const visibleTracks: Record<Collection, DemoTrack[]> = {
+  const preferredGenres = new Set(favoriteTracks.concat(recentTracks.slice(0, 3)).map((track) => track.genre));
+
+  function waveTracks(tuning: WavePreferences, excluded = dislikedIds) {
+    if (tuning.vocal === "С вокалом") return [];
+    const preferredMood = tuning.mood ? moodGenres[tuning.mood] ?? [] : [];
+
+    function score(track: DemoTrack) {
+      let value = preferredGenres.has(track.genre) ? 2 : 0;
+      if (preferredMood.includes(track.genre)) value += 12;
+      if (tuning.character === "Любимое" && favorites.includes(track.id)) value += 8;
+      else if (tuning.character === "Популярное") value += Math.min(10, playCounts[track.id] ?? 0);
+      else if (tuning.character === "Открытия" && !recentIds.includes(track.id)) value += 8;
+      return value - (recentIds.includes(track.id) ? 1 : 0);
+    }
+
+    return tracks.filter((track) => !excluded.includes(track.id)).sort((a, b) => score(b) - score(a));
+  }
+
+  function tune(key: keyof WavePreferences, value: string | null) {
+    const next = { ...preferences, [key]: value };
+    setPreferences(next);
+    const nextTracks = waveTracks(next);
+    if (!nextTracks.length) return;
+
+    waveMode.current = true;
+    waveStarted.current ||= player.playing || player.elapsed > 0;
+    player.setWaveQueue(nextTracks.map(({ id }) => id));
+  }
+
+  function dislike() {
+    if (!activeTrack) return;
+    player.toggleDislike(activeTrack.id);
+    if (!waveMode.current) return;
+    const nextExcluded = dislikedIds.includes(activeTrack.id)
+      ? dislikedIds.filter((id) => id !== activeTrack.id)
+      : [...dislikedIds, activeTrack.id];
+    player.setWaveQueue(waveTracks(preferences, nextExcluded).map(({ id }) => id));
+  }
+
+  function togglePlayback() {
+    if (!waveMode.current || waveStarted.current || player.playing) {
+      player.togglePlayback();
+      return;
+    }
+
+    const nextTracks = waveTracks(preferences);
+    if (nextTracks.length === 0) {
+      player.togglePlayback();
+      return;
+    }
+    waveStarted.current = true;
+    player.playTrack(nextTracks[0].id, nextTracks.map(({ id }) => id));
+  }
+
+  function playTrack(id: string, ids?: readonly string[]) {
+    waveMode.current = false;
+    player.playTrack(id, ids);
+  }
+
+  const sharedPlayer = { ...player, playTrack, togglePlayback };
+  const recommendations = waveTracks(preferences);
+  const tuningNotice = preferences.vocal === "С вокалом"
+    ? "В демокаталоге пока нет треков с вокалом. Текущая очередь сохранена."
+    : recommendations.length === 0
+      ? "Все треки скрыты. Снимите отметку «Не нравится», чтобы вернуть трек в волну."
+      : preferences.character === "Популярное"
+      ? "В деморежиме учитываются ваши прослушивания."
+      : undefined;
+
+  function goTo(nextScreen: Screen, query = "") {
+    if (nextScreen !== screen) {
+      window.history.pushState(null, "", screenHref(nextScreen, variant, query));
+      setScreen(nextScreen);
+      setBelowFold(false);
+      window.scrollTo({ top: 0, behavior: "instant" });
+    } else if (nextScreen === "search") {
+      window.history.replaceState(null, "", screenHref(nextScreen, variant, query));
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    if (nextScreen === "search") setSearchRequest(({ revision }) => ({ query, revision: revision + 1 }));
+    setProfileOpen(false);
+  }
+
+  function navigate(event: MouseEvent<HTMLAnchorElement>, nextScreen: Screen) {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    event.preventDefault();
+    goTo(nextScreen);
+  }
+
+  function switchVariant() {
+    const next = variant === "a" ? "b" : "a";
+    const url = new URL(window.location.href);
+    if (next === "b") url.searchParams.set("variant", next);
+    else url.searchParams.delete("variant");
+    window.history.replaceState(null, "", url);
+    setVariant(next);
+  }
+
+  useEffect(() => {
+    function onPopState() {
+      const params = new URLSearchParams(window.location.search);
+      setScreen(readScreen(params.get("tab")));
+      setVariant(params.get("variant") === "b" ? "b" : "a");
+      setSearchRequest(({ revision }) => ({ query: params.get("q") ?? "", revision: revision + 1 }));
+      setBelowFold(false);
+      setProfileOpen(false);
+    }
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed || screen !== "home") return;
+
+    // Show the dock after the feed has entered the lower fifth of the viewport.
+    const observer = new IntersectionObserver(([entry]) => setBelowFold(entry.isIntersecting), {
+      rootMargin: "0px 0px -20% 0px",
+    });
+    observer.observe(feed);
+    return () => observer.disconnect();
+  }, [screen]);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+
+    function onOutside(event: PointerEvent) {
+      if (event.target instanceof Node && !profileRef.current?.contains(event.target)) setProfileOpen(false);
+    }
+
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setProfileOpen(false);
+      profileButton.current?.focus();
+    }
+
+    document.addEventListener("pointerdown", onOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [profileOpen]);
+
+  const onPlaybackKey = useEffectEvent((event: KeyboardEvent) => {
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (target?.isContentEditable || target?.closest("input, textarea, select")) return;
+
+    if (event.code === "Space") {
+      if (target?.closest("button, summary, [role=button]")) return;
+      event.preventDefault();
+      if (!event.repeat) togglePlayback();
+    } else if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
+      event.preventDefault();
+      const direction = event.code === "ArrowLeft" ? -1 : 1;
+      player.seek((player.audioRef.current?.currentTime ?? player.elapsed) + seekStep * direction);
+    }
+  });
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => onPlaybackKey(event);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  function scrollToSection(section: HTMLElement | null) {
+    if (!section) return;
+    section.focus({ preventScroll: true });
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    section.scrollIntoView({ behavior, block: "start" });
+  }
+
+  const collections = {
     recent: recentTracks.length ? recentTracks : tracks,
     favorites: favoriteTracks,
     new: [...tracks].reverse(),
-    "for-you": selectedTracks,
+    "for-you": recommendations,
   };
-  const normalizedQuery = query.trim().toLocaleLowerCase("ru-RU");
-  const searchResults = tracks.filter((track) =>
-    `${track.title} ${track.artist} ${track.genre}`.toLocaleLowerCase("ru-RU").includes(normalizedQuery),
-  );
-  const selectedGenre = typeof collection === "string" ? undefined : collection.genre;
-  const collectionTitle = typeof collection === "string" ? collectionTitles[collection] : collection.genre;
-  const collectionTracks = typeof collection === "string"
-    ? visibleTracks[collection]
-    : tracks.filter((track) => track.genre === collection.genre);
-  const canExpandRecent = collection === "recent" && collectionTracks.length > recentPreviewSize;
-  const displayedTracks = canExpandRecent && !showAllRecent ? collectionTracks.slice(0, recentPreviewSize) : collectionTracks;
+  const collectionTracks = genre ? tracks.filter((track) => track.genre === genre) : collections[collection];
+  const showRecent = !genre && collection === "recent";
+  const displayedTracks = showRecent && !showAll ? collectionTracks.slice(0, previewSize) : collectionTracks;
+  const canExpand = showRecent && collectionTracks.length > previewSize;
 
-  function changeVariant(nextVariant: Variant) {
-    setVariant(nextVariant);
-    const url = new URL(window.location.href);
-    if (nextVariant === "b") url.searchParams.set("variant", "b");
-    else url.searchParams.delete("variant");
-    window.history.replaceState(null, "", url);
+  function selectFilter(filter: Collection) {
+    setCollection(!genre && collection === filter ? "recent" : filter);
+    setGenre(undefined);
+    setShowAll(false);
   }
 
-  function showCollection(nextCollection: TrackView, scroll = false) {
-    setCollection(nextCollection);
-    setShowAllRecent(false);
-    setPanel(null);
-    if (scroll) {
-      window.requestAnimationFrame(() => {
-        list.current?.focus({ preventScroll: true });
-        list.current?.scrollIntoView({ block: "start" });
-      });
-    }
+  function selectGenre(nextGenre: string) {
+    setGenre(genre === nextGenre ? undefined : nextGenre);
+    setCollection("recent");
+    setShowAll(false);
+    scrollToSection(listRef.current);
   }
 
-  function openPanel(nextPanel: Panel) {
-    if (nextPanel === "search") setQuery("");
-    setPanel(nextPanel);
-  }
-
-  function browseFeed() {
-    const section = feed.current;
-    if (!section) return;
-
-    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-    section.focus({ preventScroll: true });
-    section.scrollIntoView({ block: "start", behavior });
-  }
-
-  const waveFinished = !playing && player.duration > 0 && player.elapsed >= player.duration;
-  const waveCanResume = waveActive && player.activeTrack && !waveFinished;
-
-  function startWave() {
-    if (waveCanResume) {
-      togglePlayback();
+  function openPlayer() {
+    if (screen === "home") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    setWaveActive(true);
-    playWave(selectedTracks.map(({ id }) => id));
+    goTo("home");
   }
-
-  const wavePlaying = waveActive && playing;
-  const waveLabel = wavePlaying ? "Пауза" : waveCanResume ? "Продолжить" : "Слушать волну";
-  const trackPlayer = {
-    ...player,
-    playTrack: (id: string, trackIds?: readonly string[]) => {
-      setWaveActive(false);
-      player.playTrack(id, trackIds);
-    },
-  };
-
-  const navigation = (
-    <>
-      <button type="button" className="nav-item" aria-label="Главная" aria-current={collection !== "favorites" ? "page" : undefined} onClick={() => { showCollection("recent"); window.scrollTo({ top: 0 }); }}>
-        <House /><span>Главная</span>
-      </button>
-      <button type="button" className="nav-item" aria-label="Поиск" onClick={() => openPanel("search")}>
-        <Search /><span>Поиск</span>
-      </button>
-      <button type="button" className="nav-item" aria-label="Любимое" aria-current={collection === "favorites" ? "page" : undefined} onClick={() => showCollection("favorites", true)}>
-        <Heart /><span>Любимое</span>
-      </button>
-      <button type="button" className="nav-item" aria-label="Медиатека" onClick={() => openPanel("library")}>
-        <LibraryBig /><span>Медиатека</span>
-      </button>
-    </>
-  );
 
   return (
     <div className="app-shell" data-variant={variant}>
-      <audio ref={audioRef} preload="metadata" />
-
-      <main className="main">
-        <div className="home-intro">
-          <header className="main-header">
-            <Brand />
-            <nav aria-label="Основная навигация" className="desktop-nav">{navigation}</nav>
-            <div className="variant-control" role="group" aria-label="Вариант дизайна">
-              <button type="button" className="variant-button" aria-pressed={variant === "a"} onClick={() => changeVariant("a")} aria-label="Вариант A" title="Сиреневый">
-                <span className="variant-swatch" aria-hidden="true" />
+      <audio ref={player.audioRef} preload="metadata" />
+      <header className="app-header">
+        <div className="header-inner">
+          <a className="brand" href={screenHref("home", variant)} onClick={(event) => navigate(event, "home")}><Brand /></a>
+          <nav className="main-nav" aria-label="Основная навигация">
+            {navigation.map(({ id, title, Icon }) => (
+              <a key={id} href={screenHref(id, variant)} aria-current={screen === id ? "page" : undefined} onClick={(event) => navigate(event, id)}>
+                <Icon aria-hidden="true" /><span>{title}</span>
+              </a>
+            ))}
+          </nav>
+          <div className="header-tools">
+            <button type="button" className="icon-button theme-toggle" aria-label="Переключить цветовой акцент" aria-pressed={variant === "b"} title={variant === "a" ? "Лавандовый акцент" : "Сиренево-синий акцент"} onClick={switchVariant}>
+              <Palette aria-hidden="true" />
+            </button>
+            <div className="profile-anchor" ref={profileRef}>
+              <button type="button" className="icon-button profile-toggle" aria-label="Профиль" aria-expanded={profileOpen} aria-controls="profile-card" ref={profileButton} onClick={() => setProfileOpen((open) => !open)}>
+                <UserRound aria-hidden="true" />
               </button>
-              <button type="button" className="variant-button" aria-pressed={variant === "b"} onClick={() => changeVariant("b")} aria-label="Вариант B" title="Нефритовый">
-                <span className="variant-swatch" aria-hidden="true" />
-              </button>
+              {profileOpen && (
+                <section className="profile-card" id="profile-card" aria-label="Профиль">
+                  <strong>Гость</strong>
+                  <p>Избранное и плейлисты сохраняются в этом браузере.</p>
+                  <a href={screenHref("library", variant)} onClick={(event) => navigate(event, "library")}>Моя медиатека</a>
+                </section>
+              )}
             </div>
-          </header>
-
-          <section className="home-wave" aria-labelledby="wave-heading" data-playing={wavePlaying}>
-            <div className="home-wave__art" aria-hidden="true" />
-            <div className="home-wave__content">
-              <h1 className="home-wave__title" id="wave-heading"><span>Моя</span>{" "}<span>волна</span></h1>
-              <button type="button" className="home-wave__play" onClick={startWave} disabled={!tracks.length}>
-                <span className="home-wave__play-icon" aria-hidden="true">{wavePlaying ? <Pause /> : <Play />}</span>
-                <span className="home-wave__play-label">{waveLabel}</span>
-              </button>
-            </div>
-          </section>
-        </div>
-
-        <section className="home-feed" id="home-feed" ref={feed} tabIndex={-1} aria-label="Подборки и треки">
-          <button type="button" className="home-feed__handle" aria-controls="home-feed" onClick={browseFeed}>
-            <span className="home-feed__grip" aria-hidden="true" />
-            <span>Подборки и треки</span>
-          </button>
-          <div className="home-quick-actions" role="group" aria-label="Быстрые подборки">
-            <button type="button" aria-controls="home-collection" aria-pressed={collection === "favorites"} onClick={() => showCollection(collection === "favorites" ? "recent" : "favorites", true)}>
-              <Heart aria-hidden="true" /><span>Любимое</span>
-            </button>
-            <button type="button" aria-controls="home-collection" aria-pressed={collection === "new"} onClick={() => showCollection(collection === "new" ? "recent" : "new", true)}>
-              <Sparkles aria-hidden="true" /><span>Новое</span>
-            </button>
-            <button type="button" aria-controls="home-collection" aria-pressed={collection === "for-you"} onClick={() => showCollection(collection === "for-you" ? "recent" : "for-you", true)}>
-              <AudioLines aria-hidden="true" /><span>Для тебя</span>
-            </button>
           </div>
-          <section className="home-discovery" id="home-discovery" aria-labelledby="home-discovery-heading">
-            <h2 className="home-discovery__heading" id="home-discovery-heading">Миксы и жанры</h2>
-            <HomeDiscovery
-              tracks={tracks}
-              activeTrackId={player.activeTrack?.id}
-              playing={playing}
-              queue={queue}
-              onPlayMix={trackPlayer.playTrack}
-              selectedGenre={selectedGenre}
-              onSelectGenre={(genre) => showCollection({ genre }, true)}
-            />
-          </section>
+        </div>
+      </header>
 
-          <section className="collection" id="home-collection" ref={list} tabIndex={-1} aria-labelledby="collection-heading">
-            <header className="collection-header">
-              <h2 id="collection-heading">{collectionTitle}</h2>
-              {selectedGenre ? (
-                <button type="button" className="collection-expand" onClick={() => showCollection("recent", true)}>
-                  Недавние
-                </button>
-              ) : canExpandRecent ? (
-                <button type="button" className="collection-expand" aria-controls="home-collection-tracks" aria-expanded={showAllRecent} title={showAllRecent ? undefined : recentTracks.length ? "Вся история" : "Все демотреки"} onClick={() => setShowAllRecent((value) => !value)}>
-                  {showAllRecent ? "Свернуть" : "Ещё"}
-                </button>
-              ) : null}
-              {collection === "for-you" && <span>{preferredGenres.size ? "По вашим жанрам" : "Стартовая подборка"}</span>}
-            </header>
-            {displayedTracks.length > 0
-              ? <TrackList id="home-collection-tracks" tracks={displayedTracks} queueTracks={collectionTracks} player={trackPlayer} />
-              : <p className="empty-state">{collection === "favorites" ? "Нажмите на сердце рядом с треком, чтобы сохранить его здесь." : "В этой подборке пока нет треков."}</p>}
-          </section>
-        </section>
+      <main className="app-main" data-screen={screen}>
+        {screen === "home" && (
+          <>
+            <WavePlayer
+              player={sharedPlayer}
+              preferences={preferences}
+              tuningNotice={tuningNotice}
+              disliked={activeTrack ? dislikedIds.includes(activeTrack.id) : false}
+              onDislike={dislike}
+              onOpenQueue={() => queueDialog.current?.showModal()}
+              onBrowse={() => scrollToSection(feedRef.current)}
+              onTune={tune}
+            />
+
+            <section className="home-feed page-width" id="home-feed" ref={feedRef} tabIndex={-1} aria-label="Подборки и треки">
+              <div className="feed-filters" role="group" aria-label="Подборки">
+                {filters.map(({ id, title, Icon }) => (
+                  <button type="button" key={id} aria-pressed={!genre && collection === id} aria-controls="home-collection" onClick={() => selectFilter(id)}>
+                    <Icon aria-hidden="true" /><span>{title}</span>
+                  </button>
+                ))}
+              </div>
+
+              <section className="home-discovery" aria-labelledby="discovery-heading">
+                <h2 id="discovery-heading">Миксы и жанры</h2>
+                <HomeDiscovery
+                  tracks={tracks}
+                  activeTrackId={activeTrack?.id}
+                  playing={player.playing}
+                  queue={player.queue}
+                  selectedGenre={genre}
+                  onSelectGenre={selectGenre}
+                  onPlayMix={playTrack}
+                  onTogglePlayback={togglePlayback}
+                />
+              </section>
+
+              <section className="home-collection" id="home-collection" ref={listRef} tabIndex={-1} aria-labelledby="collection-heading">
+                <header className="collection-header">
+                  <h2 id="collection-heading">{genre ?? collectionTitles[collection]}</h2>
+                  {canExpand ? (
+                    <button type="button" className="text-action" aria-expanded={showAll} aria-controls="home-collection-tracks" onClick={() => setShowAll((expanded) => !expanded)}>
+                      {showAll ? "Свернуть" : "Показать все"}
+                    </button>
+                  ) : showRecent && (
+                    <a className="text-action" href={screenHref("library", variant)} onClick={(event) => navigate(event, "library")}>Показать все</a>
+                  )}
+                </header>
+                {displayedTracks.length > 0
+                  ? <TrackList id="home-collection-tracks" tracks={displayedTracks} queueTracks={collectionTracks} player={sharedPlayer} />
+                  : <p className="panel-empty">{collection === "favorites" ? "Здесь появятся треки, которые вы отметили сердцем." : "В этой подборке пока нет треков."}</p>}
+              </section>
+            </section>
+          </>
+        )}
+
+        {screen === "search" && <SearchScreen tracks={tracks} player={sharedPlayer} initialQuery={searchRequest.query} searchRevision={searchRequest.revision} />}
+        {screen === "favorites" && <FavoritesScreen tracks={tracks} player={sharedPlayer} onSearchArtist={(artist) => goTo("search", artist)} onSearch={() => goTo("search")} />}
+        {screen === "library" && <LibraryScreen recentTracks={recentTracks} tracks={tracks} player={sharedPlayer} onOpenFavorites={() => goTo("favorites")} />}
       </main>
 
-      {error && <div className="player-error" role="status">{error}</div>}
-      <div className="playback-dock">
-        <PlayerBar player={player} onPanel={openPanel} />
-        <nav aria-label="Основная навигация" className="bottom-nav">{navigation}</nav>
-      </div>
+      {player.error && <div className="player-error" role="status">{player.error}</div>}
+      <MiniPlayer player={sharedPlayer} visible={screen !== "home" || belowFold} onOpenPlayer={openPlayer} onOpenQueue={() => queueDialog.current?.showModal()} />
 
-      <dialog
-        ref={dialog}
-        className="panel"
-        aria-labelledby="panel-heading"
-        onClose={() => setPanel(null)}
-        onClick={(event) => { if (event.target === event.currentTarget) setPanel(null); }}
-      >
-        {panel && (
-          <div className="panel-inner">
-            <div className="panel-header">
-              <h2 id="panel-heading">{panelTitles[panel]}</h2>
-              <button type="button" ref={closePanelButton} className="icon-button panel-close" aria-label="Закрыть" onClick={() => setPanel(null)}>
-                <X />
-              </button>
-            </div>
-            {panel === "search" && (
-              <>
-                <label className="search-field">
-                  <Search aria-hidden="true" />
-                  <input ref={searchField} aria-label="Трек, артист или жанр" type="search" value={query} placeholder="Трек, артист или жанр" onChange={(event) => setQuery(event.currentTarget.value)} />
-                </label>
-                {searchResults.length
-                  ? <TrackList tracks={searchResults} player={trackPlayer} />
-                  : <p className="empty-state">Совпадений нет. Попробуйте другой запрос.</p>}
-              </>
-            )}
-            {panel === "library" && (
-              <div className="library-links">
-                <button type="button" onClick={() => showCollection("favorites", true)}><Heart />Любимые треки<span>{favoriteTracks.length}</span></button>
-                <button type="button" onClick={() => showCollection("recent", true)}><AudioLines />Недавние треки<span>{recentTracks.length}</span></button>
-              </div>
-            )}
-            {panel === "queue" && (
-              queue.length ? <TrackList tracks={queue} player={trackPlayer} /> : <p className="empty-state">Включите трек или «Мою волну», чтобы заполнить очередь.</p>
-            )}
-            {panel === "player" && (
-              <div className="expanded-player">
-                {player.activeTrack && <Cover track={player.activeTrack} size={320} />}
-                <div className="expanded-details">
-                  <div>
-                    <h3>{player.activeTrack?.title ?? "Трек не выбран"}</h3>
-                    {player.activeTrack && <p>{player.activeTrack.artist}</p>}
-                  </div>
-                  {player.activeTrack && (
-                    <button className="icon-button" type="button" aria-label={`В избранном: ${player.activeTrack.title}`} aria-pressed={favorites.includes(player.activeTrack.id)} onClick={() => { if (player.activeTrack) player.toggleFavorite(player.activeTrack.id); }}>
-                      <Heart />
-                    </button>
-                  )}
-                </div>
-                <Timeline player={player} />
-                <Transport player={player} />
-                <div className="expanded-tools">
-                  <Volume player={player} />
-                  <button type="button" className="icon-button" aria-label="Открыть очередь" onClick={() => openPanel("queue")}><ListMusic /></button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+      <dialog className="queue-dialog" ref={queueDialog} aria-labelledby="queue-title" onClick={(event) => {
+        if (event.target === event.currentTarget) queueDialog.current?.close();
+      }}>
+        <div className="queue-content">
+          <header className="collection-header">
+            <h2 id="queue-title">Очередь</h2>
+            <button className="icon-button" type="button" aria-label="Закрыть очередь" onClick={() => queueDialog.current?.close()}><X /></button>
+          </header>
+          {player.queue.length
+            ? <TrackList tracks={player.queue} player={sharedPlayer} />
+            : <p className="panel-empty">Включите трек, чтобы заполнить очередь.</p>}
+        </div>
       </dialog>
     </div>
   );
